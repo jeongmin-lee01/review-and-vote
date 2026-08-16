@@ -15,11 +15,10 @@
   --green-dim: #1F7A3A;
   --amber: #FFB000;
   --ink: #DFFFE4;
+  --star: #FFFFFF;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
-
-html { scroll-behavior: smooth; }
 
 body {
   background: var(--bg);
@@ -38,24 +37,32 @@ body {
   padding: 0 24px;
 }
 
-section { padding: 96px 0; }
+section { position: relative; padding: 96px 0; }
 @media (max-width: 600px) { section { padding: 64px 0; } }
 
-a { color: var(--green); }
-a:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
-
-/* ---------- badge ---------- */
-.badge {
-  display: inline-block;
-  font-family: 'Galmuri11', monospace;
-  -webkit-font-smoothing: none;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  color: var(--ink);
-  background: transparent;
-  border: 2px solid var(--green-dim);
-  padding: 2px 8px;
-  vertical-align: middle;
+/* ---------- starfield background ---------- */
+.starfield {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1px 1px at 20% 30%, var(--star) 100%, transparent 0),
+    radial-gradient(1px 1px at 70% 80%, var(--star) 100%, transparent 0),
+    radial-gradient(2px 2px at 45% 15%, var(--star) 100%, transparent 0),
+    radial-gradient(1px 1px at 85% 40%, var(--star) 100%, transparent 0),
+    radial-gradient(1px 1px at 10% 65%, var(--star) 100%, transparent 0),
+    radial-gradient(2px 2px at 60% 55%, var(--star) 100%, transparent 0);
+  background-size: 200px 200px, 300px 300px, 250px 250px, 220px 220px, 280px 280px, 320px 320px;
+  opacity: 0.45;
+  animation: drift 35s linear infinite;
+}
+@keyframes drift {
+  to {
+    background-position:
+      0 -200px, 0 -300px, 0 -250px,
+      0 -220px, 0 -280px, 0 -320px;
+  }
 }
 
 /* ---------- buttons ---------- */
@@ -81,96 +88,6 @@ a:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 @media (max-width: 600px) { .btn { font-size: 11px; padding: 12px 20px; } }
 
-/* ================= S-1 HERO ================= */
-.hero {
-  position: relative;
-  overflow: hidden;
-  padding: 64px 0 96px;
-  text-align: center;
-  border-bottom: 2px solid var(--green-dim);
-}
-.hero .container { position: relative; z-index: 2; }
-
-.hero-logo {
-  font-size: 70px;
-  letter-spacing: 0.05em;
-  color: var(--green);
-}
-@media (max-width: 600px) { .hero-logo { font-size: 42px; } }
-
-.hero-sub {
-  margin-top: 16px;
-  font-size: 22px;
-  color: var(--ink);
-}
-@media (max-width: 600px) { .hero-sub { font-size: 11px; } }
-
-/* scanlines — hero only */
-.scanlines {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(61, 255, 110, 0.05) 0px,
-    rgba(61, 255, 110, 0.05) 1px,
-    transparent 2px,
-    transparent 4px
-  );
-  background-size: 100% 8px;
-  animation: scan 6s linear infinite;
-}
-@keyframes scan {
-  0% { background-position: 0 0; }
-  100% { background-position: 0 400px; }
-}
-
-/* select grid */
-.select-grid {
-  margin: 48px auto 0;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  max-width: 640px;
-}
-@media (max-width: 600px) {
-  .select-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-}
-
-.cell {
-  aspect-ratio: 1 / 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Galmuri11', monospace;
-  -webkit-font-smoothing: none;
-  font-size: 22px;
-  color: var(--green);
-  background: var(--panel);
-  border: 2px solid var(--green);
-}
-@media (max-width: 600px) { .cell { font-size: 16px; } }
-
-.cell:focus-visible {
-  outline: 2px solid var(--amber);
-  outline-offset: 2px;
-}
-
-.cell.active {
-  border-color: var(--amber);
-  color: var(--amber);
-  animation: blink 1s steps(1) infinite;
-}
-@keyframes blink {
-  50% { border-color: var(--green-dim); color: var(--green-dim); }
-}
-
-.hero-cta { margin-top: 48px; }
-
-/* ================= S-2 문제 제기 ================= */
-.problem { background: var(--panel); }
-
 .section-label {
   font-family: 'Galmuri11', monospace;
   -webkit-font-smoothing: none;
@@ -190,6 +107,40 @@ a:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 }
 @media (max-width: 600px) { .section-title { font-size: 22px; } }
 
+/* ================= S-1 HERO ================= */
+.hero {
+  text-align: center;
+  padding: 96px 0;
+}
+@media (max-width: 600px) { .hero { padding: 64px 0; } }
+
+.hero::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: min(1100px, calc(100% - 24px));
+  border-bottom: 2px solid var(--green-dim);
+}
+
+.hero-logo {
+  font-size: 70px;
+  letter-spacing: 0.05em;
+  color: var(--green);
+}
+@media (max-width: 600px) { .hero-logo { font-size: 42px; } }
+
+.hero-sub {
+  margin-top: 16px;
+  font-size: 22px;
+  color: var(--ink);
+}
+@media (max-width: 600px) { .hero-sub { font-size: 11px; } }
+
+.hero-cta { margin-top: 48px; }
+
+/* ================= S-2 문제 제기 ================= */
 .problem-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -198,8 +149,10 @@ a:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 @media (max-width: 720px) { .problem-grid { grid-template-columns: 1fr; } }
 
 .problem-card {
-  border: 2px solid var(--green-dim);
+  border: 2px solid var(--green);
+  box-shadow: 4px 4px 0 var(--green-dim);
   padding: 24px;
+  background: var(--panel);
 }
 .problem-card .num {
   font-family: 'Galmuri11', monospace;
@@ -212,11 +165,11 @@ a:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .problem-card h3 {
   font-family: 'Galmuri11', monospace;
   -webkit-font-smoothing: none;
-  -webkit-font-smoothing: none;
-  font-size: 16px;
+  font-size: 22px;
   color: var(--green);
   margin-bottom: 12px;
 }
+@media (max-width: 600px) { .problem-card h3 { font-size: 11px; } }
 .problem-card p { color: var(--ink); font-size: 15px; }
 
 /* ================= S-3 솔루션 흐름 ================= */
@@ -242,10 +195,11 @@ a:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .flow-step h3 {
   font-family: 'Galmuri11', monospace;
   -webkit-font-smoothing: none;
-  font-size: 16px;
+  font-size: 22px;
   color: var(--ink);
   margin: 12px 0;
 }
+@media (max-width: 600px) { .flow-step h3 { font-size: 11px; } }
 .flow-step p { font-size: 15px; color: var(--ink); }
 
 /* ================= S-4 핵심 기능 ================= */
@@ -272,123 +226,35 @@ a:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .feature-card h3 {
   font-family: 'Galmuri11', monospace;
   -webkit-font-smoothing: none;
-  font-size: 16px;
+  font-size: 22px;
   color: var(--ink);
   margin-bottom: 8px;
 }
+@media (max-width: 600px) { .feature-card h3 { font-size: 11px; } }
 .feature-card p { font-size: 15px; color: var(--ink); }
 
-/* ================= S-5 사용 시나리오 ================= */
-.scenario-box {
-  position: relative;
-  border: 2px solid var(--green);
-  background: var(--panel);
-  padding: 32px;
-  max-width: 640px;
-  margin: 0 auto;
-}
-.scenario-tag {
-  font-family: 'Galmuri11', monospace;
-  -webkit-font-smoothing: none;
-  font-size: 11px;
-  color: var(--green);
-  letter-spacing: 0.05em;
-  display: block;
-  margin-bottom: 16px;
-}
-.scenario-box p { font-size: 16px; color: var(--ink); margin-bottom: 12px; }
-.scenario-box p:last-of-type { margin-bottom: 0; }
-.cursor-tri {
-  position: absolute;
-  bottom: -14px;
-  left: 32px;
-  width: 0; height: 0;
-  border-left: 10px solid transparent;
-  border-right: 10px solid transparent;
-  border-top: 12px solid var(--green);
-  animation: bob 0.8s steps(1) infinite;
-}
-@keyframes bob { 50% { transform: translateY(4px); } }
-
-/* ================= S-6 최종 CTA ================= */
-.final-cta { text-align: center; border-top: 2px solid var(--green-dim); }
-.final-cta .section-title { margin-bottom: 16px; }
-.final-cta p.lead { color: var(--ink); margin-bottom: 40px; }
-
-.signup-form {
-  display: flex;
-  gap: 12px;
-  max-width: 440px;
-  margin: 0 auto;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.signup-form input {
-  flex: 1 1 220px;
-  background: var(--panel);
-  border: 2px solid var(--green);
-  color: var(--ink);
-  font-family: 'Pretendard', sans-serif;
-  font-size: 15px;
-  padding: 14px 16px;
-}
-.signup-form input::placeholder { color: var(--green-dim); }
-.signup-form input:focus-visible { outline: 2px solid var(--amber); }
-
-.signup-done {
-  display: none;
-  font-family: 'Galmuri11', monospace;
-  -webkit-font-smoothing: none;
-  font-size: 16px;
-  color: var(--amber);
-  border: 2px solid var(--amber);
-  padding: 16px 24px;
-}
-.signup-form.done { display: none; }
-.signup-done.show { display: inline-block; }
-
-/* ================= S-7 Footer ================= */
-footer {
-  padding: 48px 0;
-  text-align: center;
-  border-top: 2px solid var(--green-dim);
-}
-footer .dot {
-  font-size: 11px;
-  color: var(--green-dim);
-  letter-spacing: 0.05em;
-  line-height: 2;
-}
-footer a { color: var(--green-dim); }
-footer a:hover { color: var(--green); }
+/* ================= S-5 체험 유도 ================= */
+.try-cta { text-align: center; border-top: 2px solid var(--green-dim); }
+.try-cta .section-title { margin-bottom: 16px; }
+.try-cta p.lead { color: var(--ink); margin-bottom: 40px; }
 
 @media (prefers-reduced-motion: reduce) {
-  * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  * { animation: none !important; transition: none !important; }
+  .starfield { animation: none; }
 }
 </style>
 </head>
 <body>
 
+<div class="starfield"></div>
+
 <!-- ================= S-1 HERO ================= -->
 <section class="hero">
-  <div class="scanlines"></div>
   <div class="container">
     <h1 class="hero-logo dot-lg">점 메 투</h1>
     <p class="hero-sub dot">오늘의 메뉴에 투표하자</p>
-
-    <div class="select-grid" id="selectGrid">
-      <div class="cell">국밥</div>
-      <div class="cell">마라</div>
-      <div class="cell">파스</div>
-      <div class="cell">초밥</div>
-      <div class="cell">삼겹</div>
-      <div class="cell">쌀국</div>
-      <div class="cell">돈까</div>
-      <div class="cell">족발</div>
-    </div>
-
     <div class="hero-cta">
-      <a href="#signup" class="btn" id="heroCtaBtn">▸ 오늘 여기서 먹자</a>
+      <button type="button" class="btn">▸ 체험해보기</button>
     </div>
   </div>
 </section>
@@ -402,17 +268,17 @@ footer a:hover { color: var(--green); }
       <div class="problem-card">
         <span class="num dot">01</span>
         <h3 class="dot">아무거나 좋아</h3>
-        <p>무한 루프. 정하는 사람도, 기다리는 사람도 지친다.</p>
+        <p>"뭐 먹을지 정해!" 하면 다들 "아무거나"라고만 답한다. 그렇게 5분, 10분이 흐르고 결국 아무도 못 정한 채 늘 가던 곳으로 향한다.</p>
       </div>
       <div class="problem-card">
         <span class="num dot">02</span>
         <h3 class="dot">흩어진 링크</h3>
-        <p>단톡방에 지도 링크 5개. 비교할 방법이 없다.</p>
+        <p>이 집 어때, 저 집은 어때. 단톡방엔 지도 링크만 대여섯 개 쌓이고, 누가 뭘 골랐는지 한눈에 비교할 방법이 없다.</p>
       </div>
       <div class="problem-card">
         <span class="num dot">03</span>
         <h3 class="dot">읽을 시간 없음</h3>
-        <p>리뷰 30개 다 읽다간 예약 시간을 놓친다.</p>
+        <p>약속은 코앞인데 가게마다 리뷰가 수십 개. 하나하나 다 읽다간 예약 시간을 놓치고 만다.</p>
       </div>
     </div>
   </div>
@@ -427,17 +293,17 @@ footer a:hover { color: var(--green); }
       <div class="flow-step">
         <span class="step-label dot">STEP 01</span>
         <h3>검색해서 후보 찾기</h3>
-        <p>동네·카테고리로 후보를 좁힌다.</p>
+        <p>동네, 음식 종류, 가격대로 조건을 걸어 갈만한 가게 몇 곳만 골라낸다.</p>
       </div>
       <div class="flow-step">
         <span class="step-label dot">STEP 02</span>
         <h3>AI 요약으로 빠르게 판단</h3>
-        <p>리뷰 30개 대신 한 줄 요약을 본다.</p>
+        <p>가게마다 쌓인 리뷰 수십 개를 AI가 한 줄로 요약해줘서, 다 읽지 않고도 분위기를 파악한다.</p>
       </div>
       <div class="flow-step">
         <span class="step-label dot">STEP 03</span>
-        <h3>투표로 확정 <span class="badge">예정</span></h3>
-        <p>링크 하나로 다 같이 투표한다.</p>
+        <h3>투표로 확정</h3>
+        <p>추린 후보를 링크 하나로 공유하고, 친구들과 각자 마음에 드는 곳에 투표해서 다수결로 정한다.</p>
       </div>
     </div>
   </div>
@@ -452,132 +318,31 @@ footer a:hover { color: var(--green); }
       <div class="feature-card">
         <div class="feature-icon">▣</div>
         <h3>AI 한 줄 요약</h3>
-        <p>리뷰를 다 안 읽어도 판단할 수 있다.</p>
+        <p>리뷰 수십 개를 대신 읽고 핵심만 한 줄로 뽑아준다. 훑어보기만 해도 이 집이 어떤 곳인지 감이 온다.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">◐</div>
         <h3>감성 도넛 · 워드클라우드</h3>
-        <p>이 집 분위기, 숫자로 한눈에 본다.</p>
+        <p>리뷰들의 긍정·부정 비율을 도넛 그래프로, 자주 나오는 단어를 워드클라우드로 보여줘서 분위기를 숫자와 그림으로 확인한다.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">▤</div>
-        <h3>함께 투표 <span class="badge">예정</span></h3>
-        <p>단톡방 대신 링크 하나로 끝낸다.</p>
+        <h3>함께 투표</h3>
+        <p>추린 후보를 친구들에게 공유하면 각자 투표하고, 가장 많이 뽑힌 곳으로 자동으로 정해진다.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ================= S-5 사용 시나리오 ================= -->
-<section>
-  <div class="container">
-    <span class="section-label dot">SCENARIO</span>
-    <h2 class="section-title dot">이런 순간에</h2>
-    <div class="scenario-box">
-      <span class="scenario-tag dot">금요일 저녁 7시 · 강남역 · 4명</span>
-      <p>"오늘 뭐 먹지?" 단톡방에 물음표만 세 개.</p>
-      <p>점메투에 강남역을 검색해 후보 4곳을 압축한다.</p>
-      <p>AI 요약으로 30초 만에 훑어본다.</p>
-      <p>투표로 한 곳을 확정한다. <span class="badge">예정</span></p>
-      <span class="cursor-tri"></span>
-    </div>
-  </div>
-</section>
-
-<!-- ================= S-6 최종 CTA ================= -->
-<section class="final-cta" id="signup">
+<!-- ================= S-5 체험 유도 ================= -->
+<section class="try-cta">
   <div class="container">
     <span class="section-label dot">PRESS START</span>
-    <h2 class="section-title dot">오늘 여기서 먹자</h2>
-    <p class="lead">베타 오픈 소식을 가장 먼저 받아보세요.</p>
-
-    <form class="signup-form" id="signupForm">
-      <input type="email" id="signupEmail" placeholder="이메일 주소" required>
-      <button type="submit" class="btn">▸ 알림 받기</button>
-    </form>
-    <div class="signup-done dot" id="signupDone">등록 완료 ▸ 오픈되면 알려드릴게요</div>
+    <h2 class="section-title dot">지금 바로 골라보자</h2>
+    <p class="lead">오늘 뭐 먹을지, 여기서 정한다.</p>
+    <button type="button" class="btn">▸ 체험해보기</button>
   </div>
 </section>
-
-<!-- ================= S-7 Footer ================= -->
-<footer>
-  <div class="container">
-    <p class="dot">점메투 · 오늘의 메뉴에 투표하자</p>
-    <p class="dot">
-      <a href="https://github.com/jeongmin-lee01/review-and-vote" target="_blank" rel="noopener">GITHUB</a>
-    </p>
-  </div>
-</footer>
-
-<script>
-// A-4: character-select grid auto-cycle
-(function () {
-  var cells = Array.prototype.slice.call(document.querySelectorAll('#selectGrid .cell'));
-  var ctaBtn = document.getElementById('heroCtaBtn');
-  var i = 0;
-  var timer = null;
-  var paused = false;
-
-  function select(index) {
-    cells.forEach(function (c) { c.classList.remove('active'); });
-    cells[index].classList.add('active');
-    ctaBtn.textContent = '▸ 오늘 ' + cells[index].textContent + ' 먹자';
-  }
-
-  function tick() {
-    if (paused) return;
-    select(i);
-    i = (i + 1) % cells.length;
-  }
-
-  function start() {
-    if (timer) return;
-    timer = setInterval(tick, 900);
-    tick();
-  }
-
-  function stop() {
-    clearInterval(timer);
-    timer = null;
-  }
-
-  cells.forEach(function (cell, idx) {
-    cell.setAttribute('tabindex', '0');
-    var lock = function () {
-      paused = true;
-      stop();
-      select(idx);
-    };
-    cell.addEventListener('mouseenter', lock);
-    cell.addEventListener('focus', lock);
-    cell.addEventListener('mouseleave', function () {
-      paused = false;
-      start();
-    });
-    cell.addEventListener('blur', function () {
-      paused = false;
-      start();
-    });
-  });
-
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    select(1);
-  } else {
-    start();
-  }
-})();
-
-// S-6: signup form (no backend, demo only)
-(function () {
-  var form = document.getElementById('signupForm');
-  var done = document.getElementById('signupDone');
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-    form.classList.add('done');
-    done.classList.add('show');
-  });
-})();
-</script>
 
 </body>
 </html>
