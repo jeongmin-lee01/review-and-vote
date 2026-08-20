@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>점메투 — 투표 데모</title>
+<style>
+@import url('https://cdn.jsdelivr.net/npm/galmuri/dist/galmuri.css');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+:root {
+  --bg: #0A0E0A;
+  --panel: #111A12;
+  --green: #3DFF6E;
+  --green-dim: #1F7A3A;
+  --amber: #FFB000;
+  --ink: #DFFFE4;
+  --star: #FFFFFF;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+  min-height: 100vh;
+}
+
+.dot { font-family: 'Galmuri11', monospace; -webkit-font-smoothing: none; }
+.dot-lg { font-family: 'Galmuri14', monospace; -webkit-font-smoothing: none; }
+
+.container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ---------- CRT scanline overlay (이 화면 전용) ---------- */
+.scanline {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--green-dim) 0px,
+    var(--green-dim) 1px,
+    transparent 2px,
+    transparent 4px
+  );
+  opacity: 0.06;
+  animation: scan-move 9s linear infinite;
+}
+@keyframes scan-move {
+  to { background-position: 0 160px; }
+}
+
+/* ---------- top bar ---------- */
+.topbar {
+  border-bottom: 2px solid var(--green-dim);
+  padding: 16px 0;
+}
+.topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.topbar-logo {
+  font-size: 22px;
+  color: var(--green);
+  text-decoration: none;
+  letter-spacing: 0.05em;
+}
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 11px;
+}
+.topbar-player { color: var(--ink); }
+.badge-sample {
+  border: 2px solid var(--green);
+  color: var(--ink);
+  background: transparent;
+  padding: 4px 8px;
+  letter-spacing: 0.05em;
+}
+
+/* ---------- main ---------- */
+.vote-main {
+  padding: 64px 0 96px;
+  text-align: center;
+}
+@media (max-width: 600px) { .vote-main { padding: 40px 0 64px; } }
+
+.select-label {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--green-dim);
+  display: block;
+  margin-bottom: 8px;
+}
+.select-title {
+  font-size: 33px;
+  color: var(--green);
+  margin-bottom: 48px;
+}
+@media (max-width: 600px) { .select-title { font-size: 22px; } }
+
+/* ---------- vote grid (캐릭터 셀렉트) ---------- */
+.vote-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-bottom: 48px;
+}
+@media (max-width: 768px) {
+  .vote-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+}
+
+.vote-item {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.vote-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  background: var(--panel);
+  border: 2px solid var(--green);
+  box-shadow: 4px 4px 0 var(--green-dim);
+  padding: 24px 12px 16px;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+  transition: transform 0.05s;
+}
+.vote-slot:disabled { cursor: default; }
+
+.vote-link {
+  display: block;
+  text-align: center;
+  font-size: 11px;
+  color: var(--green-dim);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.vote-link:hover { color: var(--ink); }
+.vote-link:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* Stardew 스타일의 "선택 프레임" 코너 표식 — 색은 토큰만 사용 */
+.vote-slot::before,
+.vote-slot::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--green);
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+.vote-slot::before { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+.vote-slot::after { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+.vote-slot:hover::before,
+.vote-slot:hover::after,
+.vote-slot:focus-visible::before,
+.vote-slot:focus-visible::after { opacity: 1; }
+
+.vote-slot:active:not(:disabled) { transform: translate(2px, 2px); }
+.vote-slot:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.slot-icon {
+  font-size: 42px;
+  color: var(--green);
+}
+.slot-name {
+  font-size: 11px;
+  color: var(--ink);
+}
+.slot-count {
+  font-size: 33px;
+  color: var(--amber);
+}
+
+.vote-slot.flash {
+  border-color: var(--amber);
+  box-shadow: 4px 4px 0 var(--amber);
+}
+.vote-slot.winner {
+  border-color: var(--amber);
+  box-shadow: 4px 4px 0 var(--amber);
+}
+.vote-slot.winner .slot-icon { color: var(--amber); }
+
+/* ---------- arrival indicators ---------- */
+.arrival-row {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 40px;
+  font-size: 11px;
+  color: var(--ink);
+}
+.arrival-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.arrival-dot {
+  font-size: 22px;
+  color: var(--green-dim);
+}
+.arrival-dot.arrived { color: var(--green); }
+
+/* ---------- CTA ---------- */
+.btn {
+  display: inline-block;
+  font-family: 'Galmuri11', monospace;
+  -webkit-font-smoothing: none;
+  font-size: 22px;
+  color: var(--bg);
+  background: var(--amber);
+  border: 2px solid var(--amber);
+  box-shadow: 4px 4px 0 var(--green-dim);
+  padding: 16px 32px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.05s;
+}
+.btn:hover { filter: brightness(1.08); }
+.btn:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 var(--green-dim);
+}
+.btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+@media (max-width: 600px) { .btn { font-size: 11px; padding: 12px 20px; } }
+
+.result-line {
+  margin-top: 24px;
+  font-size: 15px;
+  color: var(--ink);
+  min-height: 1.7em;
+}
+.result-line strong { color: var(--amber); }
+
+.back-link {
+  display: inline-block;
+  margin-top: 48px;
+  font-size: 11px;
+  color: var(--green-dim);
+  text-decoration: none;
+  border-bottom: 2px solid var(--green-dim);
+}
+.back-link:hover { color: var(--ink); border-color: var(--ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+  .scanline { animation: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="scanline"></div>
+
+<header class="topbar">
+  <div class="container topbar-inner">
+    <a href="index.html" class="topbar-logo dot-lg">점메투</a>
+    <div class="topbar-right dot">
+      <span class="topbar-player">1P: MIN</span>
+      <span class="badge-sample">SAMPLE DATA</span>
+    </div>
+  </div>
+</header>
+
+<main class="container vote-main">
+  <span class="select-label dot">GAME START</span>
+  <h1 class="select-title dot">SELECT YOUR DINNER</h1>
+
+  <div class="vote-grid" id="voteGrid">
+    <div class="vote-item">
+      <button type="button" class="vote-slot" data-name="국밥">
+        <span class="slot-icon dot-lg">▣</span>
+        <span class="slot-name dot">국밥</span>
+        <span class="slot-count dot" aria-live="polite">0</span>
+      </button>
+      <a href="https://map.kakao.com/?q=국밥" target="_blank" rel="noopener noreferrer" class="vote-link dot">가게 보기 →</a>
+    </div>
+    <div class="vote-item">
+      <button type="button" class="vote-slot" data-name="마라탕">
+        <span class="slot-icon dot-lg">◆</span>
+        <span class="slot-name dot">마라탕</span>
+        <span class="slot-count dot" aria-live="polite">0</span>
+      </button>
+      <a href="https://map.kakao.com/?q=마라탕" target="_blank" rel="noopener noreferrer" class="vote-link dot">가게 보기 →</a>
+    </div>
+    <div class="vote-item">
+      <button type="button" class="vote-slot" data-name="파스타">
+        <span class="slot-icon dot-lg">▤</span>
+        <span class="slot-name dot">파스타</span>
+        <span class="slot-count dot" aria-live="polite">0</span>
+      </button>
+      <a href="https://map.kakao.com/?q=파스타" target="_blank" rel="noopener noreferrer" class="vote-link dot">가게 보기 →</a>
+    </div>
+    <div class="vote-item">
+      <button type="button" class="vote-slot" data-name="초밥">
+        <span class="slot-icon dot-lg">◐</span>
+        <span class="slot-name dot">초밥</span>
+        <span class="slot-count dot" aria-live="polite">0</span>
+      </button>
+      <a href="https://map.kakao.com/?q=초밥" target="_blank" rel="noopener noreferrer" class="vote-link dot">가게 보기 →</a>
+    </div>
+  </div>
+
+  <div class="arrival-row dot" id="arrivalRow">
+    <span class="arrival-item"><span>1P</span><span class="arrival-dot">○</span></span>
+    <span class="arrival-item"><span>2P</span><span class="arrival-dot">○</span></span>
+    <span class="arrival-item"><span>3P</span><span class="arrival-dot">○</span></span>
+    <span class="arrival-item"><span>4P</span><span class="arrival-dot">○</span></span>
+  </div>
+
+  <button type="button" class="btn" id="cta">▸ 오늘 여기서 먹자</button>
+  <p class="result-line dot" id="resultLine" aria-live="polite"></p>
+
+  <a href="index.html" class="back-link dot">◂ 랜딩페이지로 돌아가기</a>
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  var slots = Array.prototype.slice.call(document.querySelectorAll('.vote-slot'));
+  var arrivalDots = Array.prototype.slice.call(document.querySelectorAll('.arrival-dot'));
+  var cta = document.getElementById('cta');
+  var resultLine = document.getElementById('resultLine');
+
+  var votes = [0, 0, 0, 0];
+  var votedCount = 0;
+  var votingInProgress = false;
+
+  function reduceMotion() {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  function markArrival(playerIndex) {
+    var d = arrivalDots[playerIndex];
+    d.textContent = '●';
+    d.classList.add('arrived');
+  }
+
+  function flashSlot(slot) {
+    slot.classList.add('flash');
+    var hold = reduceMotion() ? 0 : 300;
+    window.setTimeout(function () { slot.classList.remove('flash'); }, hold);
+  }
+
+  function castVote(slotIndex, playerIndex) {
+    votes[slotIndex]++;
+    slots[slotIndex].querySelector('.slot-count').textContent = String(votes[slotIndex]);
+    markArrival(playerIndex);
+    flashSlot(slots[slotIndex]);
+    votedCount++;
+
+    if (votedCount === 4) finishVoting();
+  }
+
+  function finishVoting() {
+    var max = Math.max.apply(null, votes);
+    var winners = [];
+    slots.forEach(function (s, i) {
+      s.disabled = true;
+      if (votes[i] === max) {
+        s.classList.add('winner');
+        winners.push(s.dataset.name);
+      }
+    });
+    cta.textContent = '▸ 다시 투표하기';
+    resultLine.innerHTML = winners.length > 1
+      ? '동점! <strong>' + winners.join(', ') + '</strong> 중에서 한 번 더 골라야 해요.'
+      : '오늘은 <strong>' + winners[0] + '</strong>(으)로 확정!';
+    votingInProgress = false;
+  }
+
+  function resetDemo() {
+    votes = [0, 0, 0, 0];
+    votedCount = 0;
+    votingInProgress = false;
+    slots.forEach(function (s) {
+      s.disabled = false;
+      s.classList.remove('flash', 'winner');
+      s.querySelector('.slot-count').textContent = '0';
+    });
+    arrivalDots.forEach(function (d) {
+      d.textContent = '○';
+      d.classList.remove('arrived');
+    });
+    cta.textContent = '▸ 오늘 여기서 먹자';
+    resultLine.textContent = '';
+  }
+
+  slots.forEach(function (slot, i) {
+    slot.addEventListener('click', function () {
+      if (votingInProgress || slot.disabled) return;
+      votingInProgress = true;
+      resultLine.textContent = '';
+
+      castVote(i, 0); // 1P = 내 표, 즉시 반영
+
+      [1, 2, 3].forEach(function (playerIndex, idx) {
+        var delay = reduceMotion() ? 0 : (idx + 1) * 800;
+        window.setTimeout(function () {
+          var randomSlot = Math.floor(Math.random() * slots.length);
+          castVote(randomSlot, playerIndex);
+        }, delay);
+      });
+    });
+  });
+
+  cta.addEventListener('click', function () {
+    if (votedCount === 4) resetDemo();
+  });
+})();
+</script>
+</body>
+</html>

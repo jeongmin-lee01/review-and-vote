@@ -138,7 +138,22 @@ section { position: relative; padding: 96px 0; }
 }
 @media (max-width: 600px) { .hero-sub { font-size: 11px; } }
 
-.hero-cta { margin-top: 48px; }
+.hero-cta {
+  margin-top: 48px;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+@media (max-width: 600px) { .hero-cta { flex-direction: column; } }
+
+.btn-outline {
+  background: transparent;
+  color: var(--amber);
+}
+.btn-outline:hover { background: rgba(255, 176, 0, 0.1); }
 
 /* ================= S-2 문제 제기 ================= */
 .problem-grid {
@@ -233,14 +248,46 @@ section { position: relative; padding: 96px 0; }
 @media (max-width: 600px) { .feature-card h3 { font-size: 11px; } }
 .feature-card p { font-size: 15px; color: var(--ink); }
 
+/* ================= S-4.5 앞으로 추가될 기능 (로드맵) ================= */
+.roadmap-card {
+  border-color: var(--green-dim);
+}
+.roadmap-card .feature-icon { color: var(--green-dim); }
+.badge-soon {
+  display: inline-block;
+  font-family: 'Galmuri11', monospace;
+  -webkit-font-smoothing: none;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--green-dim);
+  border: 2px solid var(--green-dim);
+  padding: 4px 8px;
+  margin-bottom: 16px;
+}
+
 /* ================= S-5 체험 유도 ================= */
 .try-cta { text-align: center; border-top: 2px solid var(--green-dim); }
 .try-cta .section-title { margin-bottom: 16px; }
 .try-cta p.lead { color: var(--ink); margin-bottom: 40px; }
 
+/* ---------- cursor dot effect ---------- */
+.cursor-dot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  pointer-events: none;
+  animation: cursor-dot-burst 0.5s ease-out forwards;
+}
+@keyframes cursor-dot-burst {
+  0%   { transform: translate(var(--x), var(--y)) translate(-50%, -50%); opacity: 1; }
+  100% { transform: translate(calc(var(--x) + var(--dx)), calc(var(--y) + var(--dy))) translate(-50%, -50%); opacity: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
   .starfield { animation: none; }
+  .cursor-dot { display: none !important; }
 }
 </style>
 </head>
@@ -254,7 +301,8 @@ section { position: relative; padding: 96px 0; }
     <h1 class="hero-logo dot-lg">점 메 투</h1>
     <p class="hero-sub dot">오늘의 메뉴에 투표하자</p>
     <div class="hero-cta">
-      <button type="button" class="btn">▸ 체험해보기</button>
+      <a href="vote.html" class="btn">▸ 투표해보기</a>
+      <a href="search.html" class="btn btn-outline">▸ 맛집 검색 체험</a>
     </div>
   </div>
 </section>
@@ -334,15 +382,102 @@ section { position: relative; padding: 96px 0; }
   </div>
 </section>
 
+<!-- ================= S-4.5 앞으로 추가될 기능 (로드맵) ================= -->
+<section class="roadmap">
+  <div class="container">
+    <span class="section-label dot">COMING SOON</span>
+    <h2 class="section-title dot">앞으로 추가될 기능</h2>
+    <div class="feature-grid">
+      <div class="feature-card roadmap-card">
+        <span class="badge-soon dot">예정</span>
+        <div class="feature-icon">▥</div>
+        <h3>리뷰 검색 &amp; 감성 대시보드</h3>
+        <p>지금은 샘플 화면뿐이지만, 실제 리뷰 데이터로 검색·필터링하고 긍정·부정 비율과 자주 나오는 단어를 대시보드로 보여줄 예정이다.</p>
+      </div>
+      <div class="feature-card roadmap-card">
+        <span class="badge-soon dot">예정</span>
+        <div class="feature-icon">▧</div>
+        <h3>AI 요약 실시간 연동</h3>
+        <p>지금은 정적인 데모지만, Gemini 기반으로 리뷰를 실시간으로 요약해 최신 리뷰까지 바로바로 반영할 예정이다.</p>
+      </div>
+      <div class="feature-card roadmap-card">
+        <span class="badge-soon dot">예정</span>
+        <div class="feature-icon">▨</div>
+        <h3>실시간 투표 · 로그인</h3>
+        <p>지금 투표 화면은 시뮬레이션이다. 서버 기반 실시간 다자간 투표와, 원하는 사람만 쓸 수 있는 선택적 로그인(Supabase)을 더할 예정이다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ================= S-5 체험 유도 ================= -->
 <section class="try-cta">
   <div class="container">
     <span class="section-label dot">PRESS START</span>
     <h2 class="section-title dot">지금 바로 골라보자</h2>
     <p class="lead">오늘 뭐 먹을지, 여기서 정한다.</p>
-    <button type="button" class="btn">▸ 체험해보기</button>
+    <div class="hero-cta">
+      <a href="vote.html" class="btn">▸ 투표해보기</a>
+      <a href="search.html" class="btn btn-outline">▸ 맛집 검색 체험</a>
+    </div>
   </div>
 </section>
 
+
+<script>
+(function () {
+  'use strict';
+
+  var reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  if (reduceMotionQuery.matches) return;
+
+  var DOT_COLORS = ['var(--green)', 'var(--amber)', 'var(--ink)'];
+  var PARTICLES_PER_BURST = 6;
+  var MAX_LIVE_DOTS = 40; // 과하게 쌓이지 않도록 상한
+  var liveDots = 0;
+
+  function spawnDot(x, y) {
+    if (liveDots >= MAX_LIVE_DOTS) return;
+
+    var dot = document.createElement('div');
+    dot.className = 'cursor-dot';
+
+    var size = Math.random() < 0.5 ? 4 : 6;
+    var angle = Math.random() * Math.PI * 2;
+    var dist = 14 + Math.random() * 26;
+
+    dot.style.width = size + 'px';
+    dot.style.height = size + 'px';
+    dot.style.background = DOT_COLORS[Math.floor(Math.random() * DOT_COLORS.length)];
+    dot.style.setProperty('--x', x + 'px');
+    dot.style.setProperty('--y', y + 'px');
+    dot.style.setProperty('--dx', (Math.cos(angle) * dist) + 'px');
+    dot.style.setProperty('--dy', (Math.sin(angle) * dist) + 'px');
+
+    dot.addEventListener('animationend', function () {
+      dot.remove();
+      liveDots--;
+    });
+
+    document.body.appendChild(dot);
+    liveDots++;
+  }
+
+  function burst(x, y) {
+    for (var i = 0; i < PARTICLES_PER_BURST; i++) spawnDot(x, y);
+  }
+
+  document.addEventListener('click', function (e) {
+    burst(e.clientX, e.clientY);
+  });
+
+  // 재생 도중 접근성 설정이 바뀌면 즉시 존중한다.
+  reduceMotionQuery.addEventListener('change', function (e) {
+    if (e.matches) {
+      document.querySelectorAll('.cursor-dot').forEach(function (d) { d.remove(); });
+    }
+  });
+})();
+</script>
 </body>
 </html>

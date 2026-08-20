@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<!--
+  search.html — 점메투 맛집 검색 페이지
+
+  실행법:
+    1) .env.example 을 복사해 .env 를 만들고 KAKAO_REST_API_KEY= 뒤에
+       카카오 개발자센터에서 발급받은 REST API 키를 채워 넣는다.
+    2) 터미널에서 `node server.js` 실행 (Node 내장 모듈만 사용, npm install 불필요).
+    3) 브라우저에서 http://localhost:8811/search.html 접속.
+
+  이 페이지의 JS(js/search.js)는 카카오 API를 직접 호출하지 않고,
+  같은 오리진의 /api/search 프록시(server.js)만 호출한다.
+  REST API 키는 서버에만 있고 브라우저 네트워크 탭에는 절대 노출되지 않는다.
+
+  중요 — 반드시 `node server.js` 로만 열 것:
+    server.js는 /api/search 프록시뿐 아니라 index.html, vote.html 등
+    정적 파일도 같은 포트(기본 8811)에서 함께 서빙한다. 즉 node server.js
+    하나만 실행하면 랜딩페이지·투표 데모·이 검색 페이지가 전부 동작한다.
+    `npx serve` 같은 순수 정적 서버로 이 파일을 열면 /api/search 라우트가
+    없어서 검색 버튼을 눌러도 항상 실패한다 (js/search.js가 이를 감지해
+    상단에 안내 배너를 띄운다).
+-->
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>점메투 — 맛집 검색</title>
+<style>
+@import url('https://cdn.jsdelivr.net/npm/galmuri/dist/galmuri.css');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+:root {
+  --bg: #0A0E0A;
+  --panel: #111A12;
+  --green: #3DFF6E;
+  --green-dim: #1F7A3A;
+  --amber: #FFB000;
+  --ink: #DFFFE4;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+  min-height: 100vh;
+}
+
+.dot { font-family: 'Galmuri11', monospace; -webkit-font-smoothing: none; }
+.dot-lg { font-family: 'Galmuri14', monospace; -webkit-font-smoothing: none; }
+
+.container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 48px 24px 96px;
+}
+
+/* ---------- header ---------- */
+.page-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  border-bottom: 2px solid var(--green-dim);
+  padding-bottom: 24px;
+  margin-bottom: 32px;
+}
+
+.page-title {
+  font-size: 28px;
+  color: var(--green);
+}
+@media (max-width: 600px) { .page-title { font-size: 14px; } }
+
+.back-link {
+  font-size: 11px;
+  color: var(--ink);
+  text-decoration: none;
+  border: 2px solid var(--green-dim);
+  padding: 8px 12px;
+  display: inline-block;
+}
+.back-link:hover { border-color: var(--green); color: var(--green); }
+
+/* ---------- search bar ---------- */
+.search-bar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.search-input {
+  flex: 1 1 240px;
+  background: var(--panel);
+  border: 2px solid var(--green-dim);
+  color: var(--ink);
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  padding: 14px 16px;
+}
+.search-input:focus { outline: none; border-color: var(--green); }
+
+.category-select {
+  background: var(--panel);
+  border: 2px solid var(--green-dim);
+  color: var(--ink);
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  padding: 14px 12px;
+}
+.category-select:focus { outline: none; border-color: var(--green); }
+
+.search-btn {
+  font-family: 'Galmuri11', monospace;
+  -webkit-font-smoothing: none;
+  font-size: 11px;
+  background: var(--amber);
+  color: var(--bg);
+  border: 2px solid var(--amber);
+  padding: 0 24px;
+  cursor: pointer;
+  box-shadow: 4px 4px 0 var(--green-dim);
+}
+.search-btn:hover { filter: brightness(1.1); }
+.search-btn:active { box-shadow: 2px 2px 0 var(--green-dim); transform: translate(2px, 2px); }
+
+.search-hint {
+  font-size: 13px;
+  color: var(--ink);
+  opacity: 0.7;
+  margin-bottom: 40px;
+}
+
+/* ---------- status ---------- */
+.status-box {
+  background: var(--panel);
+  border: 2px solid var(--green-dim);
+  box-shadow: 4px 4px 0 var(--green-dim);
+  padding: 32px 24px;
+  text-align: center;
+  margin-bottom: 32px;
+}
+.status-box[hidden] { display: none; }
+.status-msg { font-size: 14px; color: var(--green); margin-bottom: 8px; }
+.status-msg.status-error { color: var(--amber); }
+.status-sub { font-size: 14px; color: var(--ink); opacity: 0.8; }
+
+/* ---------- results ---------- */
+.results {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+@media (max-width: 700px) { .results { grid-template-columns: 1fr; } }
+
+.card {
+  background: var(--panel);
+  border: 2px solid var(--green-dim);
+  box-shadow: 4px 4px 0 var(--green-dim);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card-name {
+  font-size: 16px;
+  color: var(--green);
+  line-height: 1.5;
+}
+
+.card-category {
+  font-size: 13px;
+  color: var(--ink);
+  opacity: 0.75;
+}
+
+.card-meta { display: flex; flex-direction: column; gap: 6px; }
+.card-meta-row { display: flex; gap: 8px; font-size: 14px; color: var(--ink); }
+.card-meta-row dt { flex: 0 0 40px; opacity: 0.6; }
+.card-meta-row dd { flex: 1; word-break: break-all; }
+
+.card-link {
+  margin-top: auto;
+  align-self: flex-start;
+  font-size: 13px;
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 2px solid var(--green-dim);
+  padding-bottom: 2px;
+}
+.card-link:hover { color: var(--green); border-color: var(--green); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <header class="page-header">
+    <h1 class="page-title dot-lg">맛집 검색</h1>
+    <a class="back-link dot" href="index.html">← 홈으로</a>
+  </header>
+
+  <form id="search-form" class="search-bar">
+    <input
+      id="search-input"
+      class="search-input"
+      type="text"
+      placeholder="예: 강남 파스타"
+      autocomplete="off"
+    >
+    <select id="category-select" class="category-select">
+      <option value="">전체</option>
+      <option value="FD6">음식점</option>
+      <option value="CE7">카페</option>
+    </select>
+    <button type="submit" class="search-btn">검색</button>
+  </form>
+  <p class="search-hint">카카오 로컬 API 기반으로 가게명, 카테고리, 주소, 전화번호를 보여줍니다.</p>
+
+  <div id="status" class="status-box" hidden></div>
+
+  <ul id="results" class="results"></ul>
+</div>
+
+<script src="js/search.js"></script>
+</body>
+</html>
