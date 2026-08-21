@@ -18,6 +18,7 @@ const fs = require('fs');
 const path = require('path');
 const { searchKakao } = require('./api/_kakaoSearch');
 const { findPlaceReviews } = require('./api/_googlePlaces');
+const { analyzeReviews, readJsonBody } = require('./api/_geminiAnalysis');
 
 const PORT = process.env.PORT || 8811;
 const ROOT = __dirname;
@@ -97,6 +98,14 @@ async function handlePlaceReviews(req, res, query) {
   res.end(result.body);
 }
 
+// ---------- /api/analyze-reviews 프록시 ----------
+async function handleAnalyzeReviews(req, res) {
+  const payload = await readJsonBody(req);
+  const result = await analyzeReviews(payload);
+  res.writeHead(result.status, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.end(result.body);
+}
+
 // ---------- 서버 ----------
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
@@ -111,6 +120,11 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (url.pathname === '/api/analyze-reviews') {
+    handleAnalyzeReviews(req, res);
+    return;
+  }
+
   serveStatic(req, res, url.pathname);
 });
 
@@ -121,5 +135,8 @@ server.listen(PORT, () => {
   }
   if (!process.env.GOOGLE_PLACES_API_KEY) {
     console.warn('[경고] .env 에 GOOGLE_PLACES_API_KEY 가 설정되어 있지 않습니다. .env.example 을 참고하세요.');
+  }
+  if (!process.env.GEMINI_API_KEY) {
+    console.warn('[경고] .env 에 GEMINI_API_KEY 가 설정되어 있지 않습니다. .env.example 을 참고하세요.');
   }
 });

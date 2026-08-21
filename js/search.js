@@ -155,6 +155,7 @@
       </div>
       ${reviewsHtml}
       <a class="card-link" href="${escapeHtml(mapsUrl)}" target="_blank" rel="noopener noreferrer">구글 지도에서 전체 리뷰 보기 →</a>
+      ${reviews.length ? '<div class="ai-analysis" data-state="idle"></div>' : ''}
     `;
   }
 
@@ -204,6 +205,9 @@
     const cached = placeId ? getCachedReviews(placeId) : null;
     if (cached) {
       openReviewPanel(cardEl, renderReviewPanelContent(cached));
+      if (cached.found !== false && cached.reviews && cached.reviews.length > 0) {
+        analyzePlaceReviews(cardEl, placeId, name, cached);
+      }
       return;
     }
 
@@ -246,6 +250,160 @@
 
     if (placeId) setCachedReviews(placeId, data);
     openReviewPanel(cardEl, renderReviewPanelContent(data));
+    if (data.found !== false && data.reviews && data.reviews.length > 0) {
+      analyzePlaceReviews(cardEl, placeId, name, data);
+    }
+  }
+
+  // ---------- AI 분석 (Gemini) ----------
+  const ANALYSIS_CACHE_PREFIX = 'jeommetu:place-analysis:';
+  const analysisRequests = new Map(); // placeId -> in-flight Promise (중복 요청 방지)
+  const AI_LOADING_HTML = '<p class="status-msg dot">AI가 리뷰를 분석하고 있어요..</p>';
+
+  function getCachedAnalysis(placeId) {
+    try {
+      const raw = localStorage.getItem(ANALYSIS_CACHE_PREFIX + placeId);
+      return raw ? JSON.parse(raw) : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function setCachedAnalysis(placeId, data) {
+    try {
+      localStorage.setItem(ANALYSIS_CACHE_PREFIX + placeId, JSON.stringify(data));
+    } catch (err) {
+      // 시크릿 모드 등으로 localStorage를 못 쓰면 캐시만 건너뛴다.
+    }
+  }
+
+  function setAnalysisPanelState(cardEl, state, html) {
+    const el = cardEl.querySelector('.ai-analysis');
+    if (!el) return; // 패널이 닫혔거나 리뷰가 없어 컨테이너가 없는 경우
+    el.dataset.state = state;
+    el.innerHTML = html;
+  }
+
+  function renderSentimentBar(sentiment) {
+    const pos = Math.max(0, Number(sentiment.positive) || 0);
+    const neu = Math.max(0, Number(sentiment.neutral) || 0);
+    const neg = Math.max(0, Number(sentiment.negative) || 0);
+    const total = pos + neu + neg;
+    if (total === 0) return '';
+
+    const posPct = (pos / total) * 100;
+    const neuPct = (neu / total) * 100;
+    const negPct = (neg / total) * 100;
+
+    return `
+      <div class="sentiment-bar" role="img" aria-label="긍정 ${pos}개, 중립 ${neu}개, 부정 ${neg}개">
+        <span class="sentiment-seg sentiment-pos" style="width:${posPct}%"></span>
+        <span class="sentiment-seg sentiment-neu" style="width:${neuPct}%"></span>
+        <span class="sentiment-seg sentiment-neg" style="width:${negPct}%"></span>
+      </div>
+      <div class="sentiment-legend">
+        <span class="sentiment-legend-item"><i class="sentiment-dot sentiment-dot-pos"></i>긍정 ${pos}</span>
+        <span class="sentiment-legend-item"><i class="sentiment-dot sentiment-dot-neu"></i>중립 ${neu}</span>
+        <span class="sentiment-legend-item"><i class="sentiment-dot sentiment-dot-neg"></i>부정 ${neg}</span>
+      </div>
+    `;
+  }
+
+  function renderWordCloud(keywords) {
+    const valid = (keywords || []).filter((k) => k && k.word);
+    if (!valid.length) return '';
+    return `
+      <div class="word-cloud">
+        ${valid
+          .map((k) => {
+            const score = Math.min(10, Math.max(1, Number(k.score) || 1));
+            const isNegative = k.context === 'negative';
+            const fontSize = 12 + (score - 1) * 2; // 1점=12px ~ 10점=30px 선형 스케일
+            return `<span class="word-cloud-item ${
+              isNegative ? 'word-negative' : 'word-positive'
+            }" style="font-size:${fontSize}px">${escapeHtml(k.word)}</span>`;
+          })
+          .join('')}
+      </div>
+    `;
+  }
+
+  function renderVerdictBubble(summary) {
+    if (!summary) return '';
+    return `
+      <div class="ai-verdict">
+        <span class="review-label dot">AI총평</span>
+        <div class="verdict-bubble">
+          <p class="verdict-text">${escapeHtml(summary)}</p>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderAnalysisResult(data) {
+    const sentiment = (data && data.sentiment) || { positive: 0, neutral: 0, negative: 0 };
+    const keywords = (data && data.keywords) || [];
+    const summary = (data && data.summary) || '';
+
+    return `
+      <div class="ai-analysis-inner">
+        <span class="review-label dot">AI 리뷰 분석</span>
+        ${renderSentimentBar(sentiment)}
+        ${renderWordCloud(keywords)}
+        ${renderVerdictBubble(summary)}
+      </div>
+    `;
+  }
+
+  async function analyzePlaceReviews(cardEl, placeId, name, reviewsData) {
+    const reviews = (reviewsData && reviewsData.reviews) || [];
+    if (!reviews.length) return; // 방어적 재확인 (호출부에서도 가드함)
+
+    const cached = placeId ? getCachedAnalysis(placeId) : null;
+    if (cached) {
+      setAnalysisPanelState(cardEl, 'done', renderAnalysisResult(cached));
+      return;
+    }
+
+    setAnalysisPanelState(cardEl, 'loading', AI_LOADING_HTML);
+
+    let requestPromise = placeId ? analysisRequests.get(placeId) : null;
+    if (!requestPromise) {
+      requestPromise = fetch('/api/analyze-reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          placeId,
+          name,
+          reviews: reviews.map((r) => ({ rating: r.rating, text: r.text })),
+        }),
+      })
+        .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+        .finally(() => {
+          if (placeId) analysisRequests.delete(placeId);
+        });
+      if (placeId) analysisRequests.set(placeId, requestPromise);
+    }
+
+    let result;
+    try {
+      result = await requestPromise;
+    } catch (err) {
+      setAnalysisPanelState(cardEl, 'error', '<p class="status-sub">AI 분석을 불러오지 못했어요.</p>');
+      return;
+    }
+
+    // 응답을 기다리는 동안 패널이 다시 닫혔으면 그대로 둔다.
+    if (cardEl.getAttribute('aria-expanded') !== 'true') return;
+
+    const { ok, data } = result;
+    if (!ok) {
+      setAnalysisPanelState(cardEl, 'error', '<p class="status-sub">AI 분석을 불러오지 못했어요.</p>');
+      return;
+    }
+
+    if (placeId) setCachedAnalysis(placeId, data);
+    setAnalysisPanelState(cardEl, 'done', renderAnalysisResult(data));
   }
 
   resultsEl.addEventListener('click', (e) => {
