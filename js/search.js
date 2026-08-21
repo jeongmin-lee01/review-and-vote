@@ -411,7 +411,10 @@
 
   resultsEl.addEventListener('click', (e) => {
     if (e.target.closest('.card-link')) return;
-    if (e.target.closest('.vote-add-btn')) return;
+    if (e.target.closest('.vote-add-btn')) {
+      if (window.JeommetuAuth) window.JeommetuAuth.requireLogin();
+      return;
+    }
     const cardEl = e.target.closest('.card');
     if (!cardEl) return;
     toggleReviewPanel(cardEl);
