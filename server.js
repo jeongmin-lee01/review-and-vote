@@ -16,11 +16,11 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { searchKakao } = require('./api/_kakaoSearch');
 
 const PORT = process.env.PORT || 8811;
 const ROOT = __dirname;
 const ENV_PATH = path.join(ROOT, '.env');
-const KAKAO_SEARCH_URL = 'https://dapi.kakao.com/v2/local/search/keyword.json';
 
 // ---------- .env 파서 (외부 패키지 없이 직접 구현) ----------
 function loadEnv(filePath) {
@@ -84,53 +84,9 @@ function serveStatic(req, res, pathname) {
 
 // ---------- /api/search 프록시 ----------
 async function handleSearch(req, res, query) {
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-
-  const apiKey = process.env.KAKAO_REST_API_KEY;
-  if (!apiKey) {
-    res.writeHead(500);
-    res.end(
-      JSON.stringify({
-        error: 'MISSING_API_KEY',
-        message: '.env 파일에 KAKAO_REST_API_KEY 가 설정되어 있지 않습니다.',
-      })
-    );
-    return;
-  }
-
-  const keyword = query.get('query');
-  if (!keyword || !keyword.trim()) {
-    res.writeHead(400);
-    res.end(JSON.stringify({ error: 'MISSING_QUERY', message: '검색어(query)가 필요합니다.' }));
-    return;
-  }
-
-  const kakaoUrl = new URL(KAKAO_SEARCH_URL);
-  kakaoUrl.searchParams.set('query', keyword);
-  const categoryGroupCode = query.get('category_group_code');
-  if (categoryGroupCode) kakaoUrl.searchParams.set('category_group_code', categoryGroupCode);
-  const page = query.get('page');
-  if (page) kakaoUrl.searchParams.set('page', page);
-  const size = query.get('size');
-  if (size) kakaoUrl.searchParams.set('size', size);
-
-  try {
-    const kakaoRes = await fetch(kakaoUrl, {
-      headers: { Authorization: `KakaoAK ${apiKey}` },
-    });
-    const body = await kakaoRes.text();
-    res.writeHead(kakaoRes.status);
-    res.end(body);
-  } catch (err) {
-    res.writeHead(502);
-    res.end(
-      JSON.stringify({
-        error: 'UPSTREAM_ERROR',
-        message: '카카오 API 호출 중 오류가 발생했습니다.',
-        detail: String(err && err.message ? err.message : err),
-      })
-    );
-  }
+  const result = await searchKakao(query);
+  res.writeHead(result.status, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.end(result.body);
 }
 
 // ---------- 서버 ----------
