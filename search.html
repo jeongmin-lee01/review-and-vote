@@ -199,6 +199,29 @@ body {
 
 .card { cursor: pointer; }
 
+.card-actions {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.card-actions .card-link { margin-top: 0; align-self: auto; }
+
+.vote-add-btn {
+  font-family: 'Galmuri11', monospace;
+  -webkit-font-smoothing: none;
+  font-size: 11px;
+  background: var(--green);
+  color: var(--bg);
+  border: 2px solid var(--green);
+  padding: 6px 14px;
+  cursor: pointer;
+  box-shadow: 4px 4px 0 var(--green-dim);
+}
+.vote-add-btn:hover { filter: brightness(1.1); }
+.vote-add-btn:active { box-shadow: 2px 2px 0 var(--green-dim); transform: translate(2px, 2px); }
+
 .review-toggle {
   align-self: flex-start;
   background: none;

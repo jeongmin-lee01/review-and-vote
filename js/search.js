@@ -85,7 +85,10 @@
           </div>
           ${distance ? `<div class="card-meta-row"><dt>거리</dt><dd>${distance}</dd></div>` : ''}
         </dl>
-        <a class="card-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">카카오맵에서 보기 →</a>
+        <div class="card-actions">
+          <a class="card-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">카카오맵에서 보기 →</a>
+          <button type="button" class="vote-add-btn dot">투표에 넣기</button>
+        </div>
         <button type="button" class="review-toggle dot">▸ 구글 리뷰 보기</button>
       </li>
     `;
@@ -408,6 +411,7 @@
 
   resultsEl.addEventListener('click', (e) => {
     if (e.target.closest('.card-link')) return;
+    if (e.target.closest('.vote-add-btn')) return;
     const cardEl = e.target.closest('.card');
     if (!cardEl) return;
     toggleReviewPanel(cardEl);

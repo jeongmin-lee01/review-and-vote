@@ -125,11 +125,11 @@ section { position: relative; padding: 96px 0; }
 }
 
 .hero-logo {
-  font-size: 70px;
+  font-size: 84px;
   letter-spacing: 0.05em;
   color: var(--green);
 }
-@media (max-width: 600px) { .hero-logo { font-size: 42px; } }
+@media (max-width: 600px) { .hero-logo { font-size: 56px; } }
 
 .hero-sub {
   margin-top: 16px;
@@ -154,6 +154,92 @@ section { position: relative; padding: 96px 0; }
   color: var(--amber);
 }
 .btn-outline:hover { background: rgba(255, 176, 0, 0.1); }
+
+.hero-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 48px;
+  text-align: left;
+}
+.hero-left { flex: 1 1 320px; text-align: left; }
+.hero-right { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; }
+@media (max-width: 800px) {
+  .hero-inner { flex-direction: column; text-align: center; }
+  .hero-left { text-align: center; }
+  .hero-right { order: -1; }
+}
+
+.hero-cta--stack { flex-direction: column; align-items: flex-start; }
+@media (max-width: 800px) { .hero-cta--stack { align-items: center; } }
+
+/* ---------- 지금 뜨고 있는 맛집 (더미) ---------- */
+.hero-trending {
+  flex: 0 1 220px;
+  min-width: 180px;
+  border: 2px solid var(--green-dim);
+  background: var(--panel);
+  box-shadow: 4px 4px 0 var(--green-dim);
+  padding: 20px;
+  text-align: left;
+}
+.hero-trending-label {
+  display: block;
+  font-size: 11px;
+  color: var(--green);
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+}
+.hero-trending-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.hero-trending-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.hero-trending-rank {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--green-dim);
+}
+.hero-trending-name {
+  font-size: 14px;
+  color: var(--ink);
+}
+@media (max-width: 800px) {
+  .hero-trending { align-self: center; width: 100%; max-width: 320px; flex-basis: auto; }
+}
+
+/* ---------- 팩맨 픽셀 애니메이션 ---------- */
+.pacman-grid {
+  display: grid;
+  grid-template-columns: repeat(14, 16px);
+  grid-template-rows: repeat(14, 16px);
+  width: 224px;
+  height: 224px;
+}
+.pacman-px.body { background: var(--amber); }
+.pacman-px.eye { background: var(--bg); }
+.pacman-px.mouth {
+  background: var(--amber);
+  animation: pacman-chomp 0.35s steps(1) infinite;
+}
+@keyframes pacman-chomp {
+  0%, 49% { background: var(--bg); }
+  50%, 100% { background: var(--amber); }
+}
+@media (max-width: 600px) {
+  .pacman-grid {
+    grid-template-columns: repeat(14, 10px);
+    grid-template-rows: repeat(14, 10px);
+    width: 140px;
+    height: 140px;
+  }
+}
 
 /* ================= S-2 문제 제기 ================= */
 .problem-grid {
@@ -297,12 +383,34 @@ section { position: relative; padding: 96px 0; }
 
 <!-- ================= S-1 HERO ================= -->
 <section class="hero">
-  <div class="container">
-    <h1 class="hero-logo dot-lg">점 메 투</h1>
-    <p class="hero-sub dot">오늘의 메뉴에 투표하자</p>
-    <div class="hero-cta">
-      <a href="vote.html" class="btn">▸ 투표해보기</a>
-      <a href="search.html" class="btn btn-outline">▸ 맛집 검색 체험</a>
+  <div class="container hero-inner">
+    <div class="hero-left">
+      <h1 class="hero-logo dot-lg">점 메 투</h1>
+      <p class="hero-sub dot">오늘의 메뉴에 투표하자</p>
+      <div class="hero-cta hero-cta--stack">
+        <a href="search.html" class="btn">▸ 맛집검색</a>
+        <a href="vote.html" class="btn">▸ 투표하기</a>
+      </div>
+    </div>
+    <div class="hero-trending">
+      <span class="hero-trending-label dot">지금 뜨고 있는 맛집</span>
+      <ol class="hero-trending-list">
+        <li class="hero-trending-item">
+          <span class="hero-trending-rank dot">1위</span>
+          <span class="hero-trending-name">강남집밥</span>
+        </li>
+        <li class="hero-trending-item">
+          <span class="hero-trending-rank dot">2위</span>
+          <span class="hero-trending-name">홍대파스타</span>
+        </li>
+        <li class="hero-trending-item">
+          <span class="hero-trending-rank dot">3위</span>
+          <span class="hero-trending-name">을지로숯불집</span>
+        </li>
+      </ol>
+    </div>
+    <div class="hero-right" aria-hidden="true">
+      <div class="pacman-grid"></div>
     </div>
   </div>
 </section>
@@ -406,6 +514,18 @@ section { position: relative; padding: 96px 0; }
         <h3>실시간 투표 · 로그인</h3>
         <p>지금 투표 화면은 시뮬레이션이다. 서버 기반 실시간 다자간 투표와, 원하는 사람만 쓸 수 있는 선택적 로그인(Supabase)을 더할 예정이다.</p>
       </div>
+      <div class="feature-card roadmap-card">
+        <span class="badge-soon dot">예정</span>
+        <div class="feature-icon">▤</div>
+        <h3>여러 명이 함께 후보 담기</h3>
+        <p>지금은 한 사람이 후보를 등록하는 방식이지만, 맛집 검색에서 여러 명이 각자 찾은 결과를 투표 화면에 함께 담을 수 있게 만들 예정이다.</p>
+      </div>
+      <div class="feature-card roadmap-card">
+        <span class="badge-soon dot">예정</span>
+        <div class="feature-icon">▩</div>
+        <h3>투표 후보 슬롯 확장</h3>
+        <p>지금은 후보 개수가 정해져 있지만, 원하는 만큼 후보를 추가할 수 있도록 슬롯 제한을 넓힐 예정이다.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -417,8 +537,8 @@ section { position: relative; padding: 96px 0; }
     <h2 class="section-title dot">지금 바로 골라보자</h2>
     <p class="lead">오늘 뭐 먹을지, 여기서 정한다.</p>
     <div class="hero-cta">
-      <a href="vote.html" class="btn">▸ 투표해보기</a>
-      <a href="search.html" class="btn btn-outline">▸ 맛집 검색 체험</a>
+      <a href="vote.html" class="btn">▸ 투표하기</a>
+      <a href="search.html" class="btn btn-outline">▸ 맛집검색</a>
     </div>
   </div>
 </section>
@@ -427,6 +547,40 @@ section { position: relative; padding: 96px 0; }
 <script>
 (function () {
   'use strict';
+
+  // 팩맨 픽셀 그리드는 prefers-reduced-motion 여부와 무관하게 항상 그려야 한다
+  // (모션이 꺼져 있어도 정지된 팩맨 모양은 보여야 하므로, 아래 애니메이션 조기 종료보다 먼저 실행).
+  var PACMAN_BITMAP = [
+    '....XXXXXX....',
+    '..XXXXXXXXXX..',
+    '.XXXXXXXXXXXX.',
+    '.XXXXXXXEXXXX.',
+    'XXXXXXXXXXXXXX',
+    'XXXXXXXXXXOOOO',
+    'XXXXXXXXOOOOOO',
+    'XXXXXXXXOOOOOO',
+    'XXXXXXXXXXOOOO',
+    'XXXXXXXXXXXXXX',
+    '.XXXXXXXXXXXX.',
+    '.XXXXXXXXXXXX.',
+    '..XXXXXXXXXX..',
+    '....XXXXXX....'
+  ];
+  var pacmanGrid = document.querySelector('.pacman-grid');
+  if (pacmanGrid) {
+    var pacmanHtml = '';
+    PACMAN_BITMAP.forEach(function (row) {
+      for (var i = 0; i < row.length; i++) {
+        var ch = row[i];
+        var cls = 'pacman-px';
+        if (ch === 'X') cls += ' body';
+        else if (ch === 'O') cls += ' mouth';
+        else if (ch === 'E') cls += ' eye';
+        pacmanHtml += '<span class="' + cls + '"></span>';
+      }
+    });
+    pacmanGrid.innerHTML = pacmanHtml;
+  }
 
   var reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
   if (reduceMotionQuery.matches) return;
