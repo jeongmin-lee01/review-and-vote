@@ -17,6 +17,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { searchKakao } = require('./api/_kakaoSearch');
+const { findPlaceReviews } = require('./api/_googlePlaces');
 
 const PORT = process.env.PORT || 8811;
 const ROOT = __dirname;
@@ -89,12 +90,24 @@ async function handleSearch(req, res, query) {
   res.end(result.body);
 }
 
+// ---------- /api/place-reviews 프록시 ----------
+async function handlePlaceReviews(req, res, query) {
+  const result = await findPlaceReviews(query);
+  res.writeHead(result.status, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.end(result.body);
+}
+
 // ---------- 서버 ----------
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
 
   if (url.pathname === '/api/search') {
     handleSearch(req, res, url.searchParams);
+    return;
+  }
+
+  if (url.pathname === '/api/place-reviews') {
+    handlePlaceReviews(req, res, url.searchParams);
     return;
   }
 
@@ -105,5 +118,8 @@ server.listen(PORT, () => {
   console.log(`점메투 검색 서버 실행 중: http://localhost:${PORT}/search.html`);
   if (!process.env.KAKAO_REST_API_KEY) {
     console.warn('[경고] .env 에 KAKAO_REST_API_KEY 가 설정되어 있지 않습니다. .env.example 을 참고하세요.');
+  }
+  if (!process.env.GOOGLE_PLACES_API_KEY) {
+    console.warn('[경고] .env 에 GOOGLE_PLACES_API_KEY 가 설정되어 있지 않습니다. .env.example 을 참고하세요.');
   }
 });

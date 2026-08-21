@@ -66,9 +66,12 @@
     const phone = escapeHtml(place.phone || '전화번호 없음');
     const distance = place.distance ? formatDistance(place.distance) : '';
     const url = place.place_url || '#';
+    const placeId = escapeHtml(place.id || '');
+    const lat = place.y || '';
+    const lng = place.x || '';
 
     return `
-      <li class="card">
+      <li class="card" data-place-id="${placeId}" data-name="${name}" data-lat="${lat}" data-lng="${lng}" aria-expanded="false">
         <h3 class="card-name dot">${name}</h3>
         <p class="card-category">${category}</p>
         <dl class="card-meta">
@@ -83,6 +86,7 @@
           ${distance ? `<div class="card-meta-row"><dt>거리</dt><dd>${distance}</dd></div>` : ''}
         </dl>
         <a class="card-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">카카오맵에서 보기 →</a>
+        <button type="button" class="review-toggle dot">▸ 구글 리뷰 보기</button>
       </li>
     `;
   }
@@ -90,6 +94,166 @@
   function renderResults(places) {
     resultsEl.innerHTML = places.map(renderCard).join('');
   }
+
+  // ---------- 리뷰 패널 (구글 Places API) ----------
+  const REVIEW_CACHE_PREFIX = 'jeommetu:place-reviews:';
+  const reviewRequests = new Map(); // placeId -> in-flight Promise (중복 요청 방지)
+
+  function getCachedReviews(placeId) {
+    try {
+      const raw = localStorage.getItem(REVIEW_CACHE_PREFIX + placeId);
+      return raw ? JSON.parse(raw) : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function setCachedReviews(placeId, data) {
+    try {
+      localStorage.setItem(REVIEW_CACHE_PREFIX + placeId, JSON.stringify(data));
+    } catch (err) {
+      // 시크릿 모드 등으로 localStorage를 못 쓰면 캐시만 건너뛴다.
+    }
+  }
+
+  function renderReviewItem(review) {
+    const author = escapeHtml(review.author || '익명');
+    const when = escapeHtml(review.when || '');
+    const text = escapeHtml(review.text || '');
+    const star = typeof review.rating === 'number' ? `⭐ ${review.rating}` : '';
+    return `
+      <li class="review-item">
+        <div class="review-meta">
+          <span class="review-author">${author}</span>
+          ${star ? `<span class="review-star">${star}</span>` : ''}
+          <span class="review-when">${when}</span>
+        </div>
+        <p class="review-text">${text}</p>
+      </li>
+    `;
+  }
+
+  function renderReviewPanelContent(data) {
+    if (!data || data.found === false) {
+      return '<p class="status-msg status-error dot">이 가게의 구글 리뷰를 찾지 못했습니다.</p>';
+    }
+
+    const name = escapeHtml(data.name || '');
+    const rating = typeof data.rating === 'number' ? data.rating.toFixed(1) : '?';
+    const reviewCount = Number(data.reviewCount) || 0;
+    const reviews = data.reviews || [];
+    const mapsUrl = data.mapsUrl || '#';
+
+    const reviewsHtml = reviews.length
+      ? `<ul class="review-list">${reviews.map(renderReviewItem).join('')}</ul>`
+      : '<p class="status-sub">등록된 리뷰가 없습니다.</p>';
+
+    return `
+      <div class="review-header">
+        <span class="review-label dot">구글 리뷰 · ${name}</span>
+        <span class="review-rating">⭐ <b class="amber-num">${rating}</b> · 리뷰 ${reviewCount}개</span>
+      </div>
+      ${reviewsHtml}
+      <a class="card-link" href="${escapeHtml(mapsUrl)}" target="_blank" rel="noopener noreferrer">구글 지도에서 전체 리뷰 보기 →</a>
+    `;
+  }
+
+  function setReviewToggleLabel(cardEl, isOpen) {
+    const toggleEl = cardEl.querySelector('.review-toggle');
+    if (toggleEl) toggleEl.textContent = isOpen ? '▲ 리뷰 접기' : '▸ 구글 리뷰 보기';
+  }
+
+  function closeReviewPanel(cardEl) {
+    const panel = cardEl.querySelector('.review-panel');
+    if (panel) panel.remove();
+    cardEl.setAttribute('aria-expanded', 'false');
+    setReviewToggleLabel(cardEl, false);
+  }
+
+  function openReviewPanel(cardEl, innerHtml) {
+    let panel = cardEl.querySelector('.review-panel');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.className = 'review-panel';
+      cardEl.appendChild(panel);
+    }
+    panel.innerHTML = innerHtml;
+    cardEl.setAttribute('aria-expanded', 'true');
+    setReviewToggleLabel(cardEl, true);
+  }
+
+  async function toggleReviewPanel(cardEl) {
+    if (cardEl.getAttribute('aria-expanded') === 'true') {
+      closeReviewPanel(cardEl);
+      return;
+    }
+
+    const placeId = cardEl.dataset.placeId;
+    const name = cardEl.dataset.name;
+    const lat = cardEl.dataset.lat;
+    const lng = cardEl.dataset.lng;
+
+    if (!lat || !lng) {
+      openReviewPanel(
+        cardEl,
+        '<p class="status-msg status-error dot">좌표 정보가 없어 리뷰를 조회할 수 없습니다.</p>'
+      );
+      return;
+    }
+
+    const cached = placeId ? getCachedReviews(placeId) : null;
+    if (cached) {
+      openReviewPanel(cardEl, renderReviewPanelContent(cached));
+      return;
+    }
+
+    openReviewPanel(cardEl, '<p class="status-msg dot">리뷰를 불러오는 중..</p>');
+
+    let requestPromise = placeId ? reviewRequests.get(placeId) : null;
+    if (!requestPromise) {
+      const params = new URLSearchParams({ name, lat, lng });
+      requestPromise = fetch(`/api/place-reviews?${params.toString()}`)
+        .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+        .finally(() => {
+          if (placeId) reviewRequests.delete(placeId);
+        });
+      if (placeId) reviewRequests.set(placeId, requestPromise);
+    }
+
+    let result;
+    try {
+      result = await requestPromise;
+    } catch (err) {
+      if (cardEl.getAttribute('aria-expanded') === 'true') {
+        openReviewPanel(cardEl, '<p class="status-msg status-error dot">리뷰를 불러오지 못했습니다.</p>');
+      }
+      return;
+    }
+
+    // 응답을 기다리는 동안 패널이 다시 닫혔으면 그대로 둔다.
+    if (cardEl.getAttribute('aria-expanded') !== 'true') return;
+
+    const { ok, data } = result;
+    if (!ok) {
+      openReviewPanel(
+        cardEl,
+        `<p class="status-msg status-error dot">${escapeHtml(
+          (data && data.message) || '리뷰를 불러오지 못했습니다.'
+        )}</p>`
+      );
+      return;
+    }
+
+    if (placeId) setCachedReviews(placeId, data);
+    openReviewPanel(cardEl, renderReviewPanelContent(data));
+  }
+
+  resultsEl.addEventListener('click', (e) => {
+    if (e.target.closest('.card-link')) return;
+    const cardEl = e.target.closest('.card');
+    if (!cardEl) return;
+    toggleReviewPanel(cardEl);
+  });
 
   async function search(keyword, categoryGroupCode) {
     resultsEl.innerHTML = '';
