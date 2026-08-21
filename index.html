@@ -157,7 +157,7 @@ section { position: relative; padding: 96px 0; }
 
 .hero-inner {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 48px;
   text-align: left;
@@ -165,7 +165,7 @@ section { position: relative; padding: 96px 0; }
 .hero-left { flex: 1 1 320px; text-align: left; }
 .hero-right { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; }
 @media (max-width: 800px) {
-  .hero-inner { flex-direction: column; text-align: center; }
+  .hero-inner { flex-direction: column; align-items: center; text-align: center; }
   .hero-left { text-align: center; }
   .hero-right { order: -1; }
 }
@@ -175,26 +175,52 @@ section { position: relative; padding: 96px 0; }
 
 /* ---------- 지금 뜨고 있는 맛집 (더미) ---------- */
 .hero-trending {
+  position: relative;
   flex: 0 1 220px;
   min-width: 180px;
   border: 2px solid var(--green-dim);
   background: var(--panel);
   box-shadow: 4px 4px 0 var(--green-dim);
-  padding: 20px;
+  padding: 24px;
   text-align: left;
+}
+.hero-trending::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -10px;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 10px solid var(--green-dim);
+}
+.hero-trending::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -6px;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 8px solid var(--panel);
 }
 .hero-trending-label {
   display: block;
-  font-size: 11px;
+  font-size: 22px;
   color: var(--green);
   letter-spacing: 0.05em;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
+@media (max-width: 600px) { .hero-trending-label { font-size: 11px; } }
 .hero-trending-list {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
 }
 .hero-trending-item {
   display: flex;
@@ -212,6 +238,8 @@ section { position: relative; padding: 96px 0; }
 }
 @media (max-width: 800px) {
   .hero-trending { align-self: center; width: 100%; max-width: 320px; flex-basis: auto; }
+  .hero-trending::before,
+  .hero-trending::after { display: none; }
 }
 
 /* ---------- 팩맨 픽셀 애니메이션 ---------- */
@@ -221,6 +249,7 @@ section { position: relative; padding: 96px 0; }
   grid-template-rows: repeat(14, 16px);
   width: 224px;
   height: 224px;
+  transform: scaleX(-1);
 }
 .pacman-px.body { background: var(--amber); }
 .pacman-px.eye { background: var(--bg); }
