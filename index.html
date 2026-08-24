@@ -39,6 +39,7 @@
 .auth-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--green-dim); }
 
 .mypage-btn {
+  display: inline-block;
   font-family: 'Galmuri11', monospace;
   -webkit-font-smoothing: none;
   font-size: 11px;
@@ -241,7 +242,7 @@ section { position: relative; padding: 96px 0; }
 .hero-cta--stack { flex-direction: column; align-items: flex-start; }
 @media (max-width: 800px) { .hero-cta--stack { align-items: center; } }
 
-/* ---------- 지금 뜨고 있는 맛집 (더미) ---------- */
+/* ---------- 지금 뜨고 있는 맛집 ---------- */
 .hero-trending {
   position: relative;
   flex: 0 1 220px;
@@ -252,6 +253,8 @@ section { position: relative; padding: 96px 0; }
   padding: 24px;
   text-align: left;
 }
+.hero-trending-name-link { color: var(--ink); text-decoration: none; }
+.hero-trending-name-link:hover { color: var(--green); }
 .hero-trending::before {
   content: '';
   position: absolute;
@@ -308,6 +311,45 @@ section { position: relative; padding: 96px 0; }
   .hero-trending { align-self: center; width: 100%; max-width: 320px; flex-basis: auto; }
   .hero-trending::before,
   .hero-trending::after { display: none; }
+}
+
+/* ---------- 나를 위한 추천 (히어로 하단 가로 패널) ---------- */
+.hero-recommend {
+  margin-top: 32px;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  border: 2px solid var(--green-dim);
+  background: var(--panel);
+  box-shadow: 4px 4px 0 var(--green-dim);
+  padding: 16px 24px;
+  text-align: left;
+  width: 100%;
+}
+.hero-recommend[hidden] { display: none; }
+
+.hero-recommend-label {
+  flex: 0 0 auto;
+  font-size: 22px;
+  color: var(--green);
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.hero-recommend-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 24px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+@media (max-width: 600px) {
+  .hero-recommend { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .hero-recommend-label { font-size: 11px; }
 }
 
 /* ---------- 팩맨 픽셀 애니메이션 ---------- */
@@ -500,7 +542,7 @@ section { position: relative; padding: 96px 0; }
     </div>
     <div class="hero-trending">
       <span class="hero-trending-label dot">지금 뜨고 있는 맛집</span>
-      <ol class="hero-trending-list">
+      <ol class="hero-trending-list" id="heroTrendingList">
         <li class="hero-trending-item">
           <span class="hero-trending-rank dot">1위</span>
           <span class="hero-trending-name">강남집밥</span>
@@ -517,6 +559,12 @@ section { position: relative; padding: 96px 0; }
     </div>
     <div class="hero-right" aria-hidden="true">
       <div class="pacman-grid"></div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="hero-recommend" id="heroRecommend" hidden>
+      <span class="hero-recommend-label dot">나를 위한 추천</span>
+      <ul class="hero-recommend-list" id="heroRecommendList"></ul>
     </div>
   </div>
 </section>
@@ -651,6 +699,8 @@ section { position: relative; padding: 96px 0; }
 <script>window.JEOMMETU_MYPAGE_URL = 'mypage.html';</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="js/auth.js"></script>
+<script src="js/trending.js"></script>
+<script src="js/recommend.js"></script>
 <script>
 (function () {
   'use strict';
