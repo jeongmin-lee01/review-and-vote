@@ -51,16 +51,16 @@
     widget.innerHTML =
       (MYPAGE_URL ? '<a href="' + MYPAGE_URL + '" class="mypage-btn dot" id="mypageLink" hidden>마이페이지</a>' : '') +
       '<button type="button" class="auth-btn dot" id="authTriggerBtn">로그인</button>';
-    document.body.appendChild(widget);
+    document.body.insertBefore(widget, document.body.firstChild);
 
     var overlay = document.createElement('div');
     overlay.className = 'auth-modal-overlay';
     overlay.id = 'authModalOverlay';
     overlay.hidden = true;
     overlay.innerHTML =
-      '<div class="auth-modal">' +
+      '<div class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">' +
         '<button type="button" class="auth-modal-close" id="authModalClose" aria-label="닫기">×</button>' +
-        '<h2 class="dot">로그인 / 회원가입</h2>' +
+        '<h2 class="dot" id="authModalTitle">로그인 / 회원가입</h2>' +
         '<p class="auth-context dot" id="authContext" hidden></p>' +
         '<form id="authForm">' +
           '<div class="auth-field">' +
@@ -75,7 +75,7 @@
             '<button type="submit" class="btn" id="authSignInBtn">로그인</button>' +
             '<button type="button" class="btn" id="authSignUpBtn">회원가입</button>' +
           '</div>' +
-          '<p class="auth-msg" id="authMsg"></p>' +
+          '<p class="auth-msg" id="authMsg" aria-live="polite" aria-atomic="true"></p>' +
         '</form>' +
       '</div>';
     document.body.appendChild(overlay);
@@ -91,6 +91,7 @@
     els.msg = document.getElementById('authMsg');
     els.context = document.getElementById('authContext');
     els.mypageLink = document.getElementById('mypageLink');
+    els.dialog = els.overlay.querySelector('.auth-modal');
 
     els.triggerBtn.addEventListener('click', function () {
       if (currentUser) {
@@ -104,7 +105,12 @@
       if (e.target === els.overlay) closeModal();
     });
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && !els.overlay.hidden) closeModal();
+      if (els.overlay.hidden) return;
+      if (e.key === 'Escape') {
+        closeModal();
+        return;
+      }
+      if (e.key === 'Tab') trapFocus(e);
     });
     els.form.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -131,7 +137,30 @@
     els.signUpBtn.disabled = busy;
   }
 
+  var lastFocusedEl = null;
+
+  function getFocusableEls() {
+    return Array.prototype.slice.call(
+      els.dialog.querySelectorAll('button:not([disabled]), input:not([disabled]), a[href]')
+    );
+  }
+
+  function trapFocus(e) {
+    var focusable = getFocusableEls();
+    if (!focusable.length) return;
+    var first = focusable[0];
+    var last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+
   function openModal(contextText) {
+    lastFocusedEl = document.activeElement;
     els.email.value = '';
     els.password.value = '';
     setMsg('');
@@ -143,6 +172,8 @@
 
   function closeModal() {
     els.overlay.hidden = true;
+    if (lastFocusedEl && typeof lastFocusedEl.focus === 'function') lastFocusedEl.focus();
+    lastFocusedEl = null;
   }
 
   function handleSignIn(email, password) {
