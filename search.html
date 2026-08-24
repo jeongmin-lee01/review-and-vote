@@ -335,6 +335,36 @@ body {
 .card-meta-row dt { flex: 0 0 40px; opacity: 0.6; }
 .card-meta-row dd { flex: 1; word-break: break-all; }
 
+/* ---------- 식당 사진 (구글 Places 사진, 패널 클릭 시에만 로드) ----------
+   레트로 각진 UI와 달리 실제 사진 콘텐츠 영역이라 둥근 모서리를 예외로 허용한다. */
+.card-photo {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #2A2E2A;
+  border-radius: 12px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.card-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 12px !important;
+}
+.card-photo-emoji { font-size: 56px; line-height: 1; }
+.card-photo-credit {
+  font-size: 11px;
+  color: var(--ink);
+  opacity: 0.6;
+  margin-top: -6px;
+}
+@media (max-width: 600px) {
+  .card-photo-emoji { font-size: 44px; }
+}
+
 .card-link {
   margin-top: auto;
   align-self: flex-start;

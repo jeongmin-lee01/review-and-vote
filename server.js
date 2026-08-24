@@ -18,6 +18,7 @@ const fs = require('fs');
 const path = require('path');
 const { searchKakao } = require('./api/_kakaoSearch');
 const { findPlaceReviews } = require('./api/_googlePlaces');
+const { fetchPlacePhoto } = require('./api/_placePhoto');
 const { analyzeReviews, readJsonBody } = require('./api/_geminiAnalysis');
 
 const PORT = process.env.PORT || 8811;
@@ -98,6 +99,23 @@ async function handlePlaceReviews(req, res, query) {
   res.end(result.body);
 }
 
+// ---------- /api/place-photo 프록시 ----------
+async function handlePlacePhoto(req, res, query) {
+  const result = await fetchPlacePhoto(query);
+
+  if (result.error) {
+    res.writeHead(result.status, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ error: true, message: result.message }));
+    return;
+  }
+
+  res.writeHead(200, {
+    'Content-Type': result.contentType,
+    'Cache-Control': 'public, max-age=86400',
+  });
+  res.end(result.buffer);
+}
+
 // ---------- /api/analyze-reviews 프록시 ----------
 async function handleAnalyzeReviews(req, res) {
   const payload = await readJsonBody(req);
@@ -117,6 +135,11 @@ const server = http.createServer((req, res) => {
 
   if (url.pathname === '/api/place-reviews') {
     handlePlaceReviews(req, res, url.searchParams);
+    return;
+  }
+
+  if (url.pathname === '/api/place-photo') {
+    handlePlacePhoto(req, res, url.searchParams);
     return;
   }
 

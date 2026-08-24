@@ -106,6 +106,30 @@
     return `${(n / 1000).toFixed(1)}km`;
   }
 
+  // ---------- 카테고리/이름 기반 fallback 이모지 ----------
+  const FOOD_EMOJI_RULES = [
+    [/카페|커피/, '☕'],
+    [/베이커리|빵집|제과/, '🥐'],
+    [/피자/, '🍕'],
+    [/버거|햄버거/, '🍔'],
+    [/치킨/, '🍗'],
+    [/고기|바비큐|BBQ|고깃집|삼겹살|갈비/, '🥩'],
+    [/초밥|스시|일식|사시미|회/, '🍣'],
+    [/라멘|우동|라면|면요리|국수/, '🍜'],
+    [/중식|중국집|짜장|짬뽕/, '🥟'],
+    [/한식|백반|국밥|찌개/, '🍚'],
+    [/디저트|케이크/, '🍰'],
+    [/아이스크림|빙수/, '🍦'],
+  ];
+
+  function guessFoodEmoji(name, category) {
+    const text = `${category || ''} ${name || ''}`;
+    for (const [pattern, emoji] of FOOD_EMOJI_RULES) {
+      if (pattern.test(text)) return emoji;
+    }
+    return '🍽️';
+  }
+
   function renderCard(place) {
     const name = escapeHtml(place.place_name || '이름 없음');
     const category = escapeHtml(place.category_name || '카테고리 정보 없음');
@@ -120,6 +144,7 @@
     const added = placeId ? isCandidate(placeId) : false;
     const voteBtnDisabled = !added && candidates.length >= MAX_CANDIDATES;
     const voteBtnLabel = added ? '담음 · 취소' : '+ 투표 후보에 담기';
+    const emoji = guessFoodEmoji(place.place_name, place.category_name);
 
     return `
       <li class="card" data-place-id="${placeId}" data-name="${name}" data-category="${category}" data-address="${address}" data-lat="${lat}" data-lng="${lng}" aria-expanded="false">
@@ -136,6 +161,9 @@
           </div>
           ${distance ? `<div class="card-meta-row"><dt>거리</dt><dd>${distance}</dd></div>` : ''}
         </dl>
+        <div class="card-photo" data-emoji="${emoji}">
+          <span class="card-photo-emoji" aria-hidden="true">${emoji}</span>
+        </div>
         <div class="card-actions">
           <a class="card-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">카카오맵에서 보기 →</a>
           <div class="card-btn-group">
@@ -216,6 +244,45 @@
     `;
   }
 
+  // ---------- 카드 사진 (구글 Places 사진, 패널 클릭 시에만 요청) ----------
+  function renderPhotoFallback(photoBox) {
+    const emoji = photoBox.dataset.emoji || '🍽️';
+    photoBox.innerHTML = `<span class="card-photo-emoji" aria-hidden="true">${emoji}</span>`;
+    delete photoBox.dataset.photoName;
+  }
+
+  function renderPhotoCredit(photoBox, attributions) {
+    const existing = photoBox.parentElement && photoBox.parentElement.querySelector('.card-photo-credit');
+    if (existing) existing.remove();
+
+    const first = (attributions || []).find((a) => a && a.displayName);
+    if (!first) return;
+
+    const credit = document.createElement('p');
+    credit.className = 'card-photo-credit';
+    credit.textContent = `사진 제공: ${first.displayName}`;
+    photoBox.insertAdjacentElement('afterend', credit);
+  }
+
+  function updateCardPhoto(cardEl, data) {
+    const photoBox = cardEl.querySelector('.card-photo');
+    if (!photoBox || !data || !data.photoName) return; // 사진 없음 → fallback 유지
+
+    if (photoBox.dataset.photoName === data.photoName) return; // 이미 이 사진으로 반영됨
+
+    const img = new Image();
+    img.alt = `${data.name || ''} 사진`;
+    img.loading = 'lazy';
+    img.onload = () => {
+      photoBox.innerHTML = '';
+      photoBox.appendChild(img);
+      photoBox.dataset.photoName = data.photoName;
+      renderPhotoCredit(photoBox, data.photoAttributions);
+    };
+    img.onerror = () => renderPhotoFallback(photoBox);
+    img.src = `/api/place-photo?name=${encodeURIComponent(data.photoName)}`;
+  }
+
   function setReviewToggleLabel(cardEl, isOpen) {
     const toggleEl = cardEl.querySelector('.review-toggle');
     if (toggleEl) toggleEl.textContent = isOpen ? '▲ 리뷰 접기' : '▸ 구글 리뷰 보기';
@@ -262,6 +329,7 @@
     const cached = placeId ? getCachedReviews(placeId) : null;
     if (cached) {
       openReviewPanel(cardEl, renderReviewPanelContent(cached));
+      updateCardPhoto(cardEl, cached);
       if (cached.found !== false && cached.reviews && cached.reviews.length > 0) {
         analyzePlaceReviews(cardEl, placeId, name, cached);
       }
@@ -307,6 +375,7 @@
 
     if (placeId) setCachedReviews(placeId, data);
     openReviewPanel(cardEl, renderReviewPanelContent(data));
+    updateCardPhoto(cardEl, data);
     if (data.found !== false && data.reviews && data.reviews.length > 0) {
       analyzePlaceReviews(cardEl, placeId, name, data);
     }

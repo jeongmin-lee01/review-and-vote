@@ -4,7 +4,7 @@
 
 const TEXT_SEARCH_URL = 'https://places.googleapis.com/v1/places:searchText';
 const FIELD_MASK =
-  'places.displayName,places.location,places.rating,places.userRatingCount,places.googleMapsUri,places.reviews';
+  'places.displayName,places.location,places.rating,places.userRatingCount,places.googleMapsUri,places.reviews,places.photos';
 const DEFAULT_RADIUS_METERS = 100;
 
 // 하버사인 공식으로 두 좌표 사이의 거리(미터)를 계산한다.
@@ -20,6 +20,7 @@ function distanceMeters(lat1, lng1, lat2, lng2) {
 }
 
 function formatPlace(place) {
+  const photo = (place.photos && place.photos[0]) || null;
   return {
     found: true,
     name: (place.displayName && place.displayName.text) || '',
@@ -32,6 +33,14 @@ function formatPlace(place) {
       text: (r.text && r.text.text) || (r.originalText && r.originalText.text) || '',
     })),
     mapsUrl: place.googleMapsUri || '',
+    photoName: photo ? photo.name : null,
+    photoAttributions:
+      photo && photo.authorAttributions
+        ? photo.authorAttributions.map((a) => ({
+            displayName: a.displayName || '',
+            uri: a.uri || '',
+          }))
+        : [],
   };
 }
 
