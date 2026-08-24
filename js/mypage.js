@@ -123,7 +123,14 @@
 
   setStatus('<p class="status-msg dot">불러오는 중..</p>');
 
+  let hasRun = false;
+  let lastUserId = null;
   window.JeommetuAuth.onChange((user) => {
+    const uid = user ? user.id : null;
+    if (hasRun && uid === lastUserId) return;
+    hasRun = true;
+    lastUserId = uid;
+
     if (user) {
       loadPicks();
     } else {

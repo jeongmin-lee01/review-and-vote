@@ -93,7 +93,13 @@
     }
   });
 
+  let hasRun = false;
+  let lastUserId = null;
   window.JeommetuAuth.onChange((user) => {
-    loadPickedIds(user ? user.id : null);
+    const uid = user ? user.id : null;
+    if (hasRun && uid === lastUserId) return;
+    hasRun = true;
+    lastUserId = uid;
+    loadPickedIds(uid);
   });
 })();

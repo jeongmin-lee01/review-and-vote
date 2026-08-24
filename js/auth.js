@@ -18,6 +18,7 @@
   var client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
   var currentUser = null;
+  var initialResolved = false; // getSession()/onAuthStateChange의 첫 응답이 아직 안 왔는지 구분용
   var listeners = [];
   var els = {};
 
@@ -29,6 +30,7 @@
 
   function setUser(user) {
     currentUser = user;
+    initialResolved = true;
     renderWidget();
     notify();
   }
@@ -202,6 +204,12 @@
     },
     onChange: function (cb) {
       listeners.push(cb);
+      // getSession()의 첫 응답이 스크립트 실행 순서보다 먼저 끝나버리면(세션이 캐시돼 있어
+      // 빠르게 resolve되는 경우 등), 뒤늦게 로드되는 스크립트의 onChange 구독이 그 최초
+      // 알림을 영영 놓친다. 이미 상태 확인이 끝난 뒤에 구독하면 현재 값을 즉시 한 번
+      // 재생해줘서 이 경합을 없앤다. 아직 확인 전이면(currentUser가 아직 확정되지 않음)
+      // 재생하지 않고 원래대로 곧 오는 notify()를 기다린다.
+      if (initialResolved) cb(currentUser);
     },
     requireLogin: function (contextText) {
       if (currentUser) return true;

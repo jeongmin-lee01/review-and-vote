@@ -113,7 +113,18 @@
     panelEl.hidden = false;
   }
 
+  // Supabase가 페이지 로드 시 로그인 이벤트를 두 번(getSession + onAuthStateChange) 쏘는 경우가 있어,
+  // 같은 로그인 상태에 대해 buildRecommendations()가 중복 실행되면 두 호출이 겹치면서 나중에 끝난
+  // 쪽(둘 중 하나가 일시적으로 실패해도)이 결과를 덮어써 패널이 사라지는 경합이 생겼다.
+  // 같은 사용자에 대해서는 다시 실행하지 않도록 막는다.
+  let hasRun = false;
+  let lastUserId = null;
   window.JeommetuAuth.onChange((user) => {
+    const uid = user ? user.id : null;
+    if (hasRun && uid === lastUserId) return;
+    hasRun = true;
+    lastUserId = uid;
+
     if (user) {
       buildRecommendations();
     } else {
