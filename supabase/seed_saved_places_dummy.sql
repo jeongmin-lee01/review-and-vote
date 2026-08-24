@@ -27,7 +27,10 @@ select
   false,
   '', '', '', ''
 from generate_series(1, 25) as gs
-on conflict (email) do nothing;
+where not exists (
+  select 1 from auth.users u
+  where u.email = 'dummy_place_seed_' || gs || '@example.invalid'
+);
 
 -- 2) 가게 14곳 + 가중치(합계 100)로 saved_places 100건 삽입
 --    (같은 가게를 여러 placeholder 유저가 나눠 담는 방식 — 실제 사용 패턴과 비슷하게)

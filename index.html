@@ -26,6 +26,7 @@
   font-family: 'Galmuri11', monospace;
   -webkit-font-smoothing: none;
   font-size: 11px;
+  line-height: normal;
   color: var(--ink);
   background: var(--panel);
   border: 2px solid var(--green);
@@ -43,6 +44,7 @@
   font-family: 'Galmuri11', monospace;
   -webkit-font-smoothing: none;
   font-size: 11px;
+  line-height: normal;
   color: var(--ink);
   background: var(--panel);
   border: 2px solid var(--green);
@@ -56,6 +58,35 @@
 .mypage-btn:hover { color: var(--green); }
 .mypage-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--green-dim); }
 .mypage-btn[hidden] { display: none; }
+
+/* ---------- 하단 고정 내비게이션 (모바일 전용) ---------- */
+.bottom-nav { display: none; }
+@media (max-width: 800px) {
+  body { padding-bottom: 64px; }
+  .bottom-nav {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    height: 64px;
+    background: var(--panel);
+    border-top: 2px solid var(--green-dim);
+  }
+  .bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .bottom-nav-item span { font-size: 11px; }
+  .bottom-nav-item.is-active { color: var(--amber); }
+}
 
 .auth-modal-overlay {
   position: fixed; inset: 0; z-index: 100;
@@ -161,7 +192,7 @@ section { position: relative; padding: 96px 0; }
   box-shadow: 0 0 0 var(--green-dim);
 }
 .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-@media (max-width: 600px) { .btn { font-size: 11px; padding: 12px 20px; } }
+@media (max-width: 600px) { .btn { font-size: 22px; padding: 14px 20px; } }
 
 .section-label {
   font-family: 'Galmuri11', monospace;
@@ -211,7 +242,7 @@ section { position: relative; padding: 96px 0; }
   font-size: 22px;
   color: var(--ink);
 }
-@media (max-width: 600px) { .hero-sub { font-size: 11px; } }
+@media (max-width: 600px) { .hero-sub { font-size: 22px; } }
 
 .hero-cta {
   margin-top: 48px;
@@ -315,7 +346,7 @@ section { position: relative; padding: 96px 0; }
 
 /* ---------- 나를 위한 추천 (히어로 하단 가로 패널) ---------- */
 .hero-recommend {
-  margin-top: 32px;
+  margin-top: 48px;
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
@@ -342,6 +373,7 @@ section { position: relative; padding: 96px 0; }
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
+  justify-content: center;
   gap: 8px 24px;
   flex: 1 1 auto;
   min-width: 0;
@@ -695,8 +727,25 @@ section { position: relative; padding: 96px 0; }
   </div>
 </section>
 
+<nav class="bottom-nav" aria-label="주요 기능">
+  <a href="index.html" class="bottom-nav-item is-active">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+    <span class="dot">홈</span>
+  </a>
+  <a href="search.html" class="bottom-nav-item">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <span class="dot">검색</span>
+  </a>
+  <a href="vote.html" class="bottom-nav-item">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16"/><path d="M8 12l3 3 5-6"/></svg>
+    <span class="dot">투표</span>
+  </a>
+  <a href="mypage.html" class="bottom-nav-item">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
+    <span class="dot">마이페이지</span>
+  </a>
+</nav>
 
-<script>window.JEOMMETU_MYPAGE_URL = 'mypage.html';</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/trending.js"></script>
