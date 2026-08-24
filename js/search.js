@@ -11,6 +11,53 @@
   const categorySelect = document.getElementById('category-select');
   const resultsEl = document.getElementById('results');
   const statusEl = document.getElementById('status');
+  const candidateCounterEl = document.getElementById('candidate-counter');
+  const candidateResetBtn = document.getElementById('candidate-reset');
+  const candidateStartBtn = document.getElementById('candidate-start');
+
+  // ---------- 투표 후보 (localStorage로 vote.html에 전달) ----------
+  const CANDIDATES_KEY = 'jeommetu:vote-candidates';
+  const MAX_CANDIDATES = 4;
+
+  function loadCandidates() {
+    try {
+      const raw = localStorage.getItem(CANDIDATES_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (err) {
+      return [];
+    }
+  }
+
+  function saveCandidates(list) {
+    try {
+      localStorage.setItem(CANDIDATES_KEY, JSON.stringify(list));
+    } catch (err) {
+      // 시크릿 모드 등으로 localStorage를 못 쓰면 이번 방문에서만 담긴 걸로 취급한다.
+    }
+  }
+
+  let candidates = loadCandidates();
+
+  function isCandidate(placeId) {
+    return candidates.some((c) => c.id === placeId);
+  }
+
+  function renderCandidateBar() {
+    candidateCounterEl.textContent = `투표 후보 ${candidates.length} / ${MAX_CANDIDATES}`;
+    candidateResetBtn.disabled = candidates.length === 0;
+    candidateStartBtn.disabled = candidates.length === 0;
+  }
+
+  function syncVoteButtons() {
+    resultsEl.querySelectorAll('.vote-add-btn').forEach((btn) => {
+      const cardEl = btn.closest('.card');
+      const placeId = cardEl && cardEl.dataset.placeId;
+      const added = placeId ? isCandidate(placeId) : false;
+      btn.classList.toggle('is-added', added);
+      btn.textContent = added ? '담음 · 취소' : '+ 투표 후보에 담기';
+      btn.disabled = !added && candidates.length >= MAX_CANDIDATES;
+    });
+  }
 
   // 이 페이지가 /api/search 프록시 없이(예: npx serve 같은 정적 서버로) 열려 있을 때
   // 공통으로 보여줄 안내 메시지. node server.js 하나만 실행하면
@@ -70,6 +117,10 @@
     const lat = place.y || '';
     const lng = place.x || '';
 
+    const added = placeId ? isCandidate(placeId) : false;
+    const voteBtnDisabled = !added && candidates.length >= MAX_CANDIDATES;
+    const voteBtnLabel = added ? '담음 · 취소' : '+ 투표 후보에 담기';
+
     return `
       <li class="card" data-place-id="${placeId}" data-name="${name}" data-category="${category}" data-address="${address}" data-lat="${lat}" data-lng="${lng}" aria-expanded="false">
         <h3 class="card-name dot">${name}</h3>
@@ -89,7 +140,7 @@
           <a class="card-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">카카오맵에서 보기 →</a>
           <div class="card-btn-group">
             <button type="button" class="pick-add-btn dot">맛집 담기</button>
-            <button type="button" class="vote-add-btn dot">투표에 넣기</button>
+            <button type="button" class="vote-add-btn dot${added ? ' is-added' : ''}"${voteBtnDisabled ? ' disabled' : ''}>${voteBtnLabel}</button>
           </div>
         </div>
         <button type="button" class="review-toggle dot">▸ 구글 리뷰 보기</button>
@@ -415,13 +466,56 @@
   resultsEl.addEventListener('click', (e) => {
     if (e.target.closest('.card-link')) return;
     if (e.target.closest('.pick-add-btn')) return;
-    if (e.target.closest('.vote-add-btn')) {
-      if (window.JeommetuAuth) window.JeommetuAuth.requireLogin();
+
+    const voteBtn = e.target.closest('.vote-add-btn');
+    if (voteBtn) {
+      if (voteBtn.disabled) return;
+      const cardEl = voteBtn.closest('.card');
+      const placeId = cardEl.dataset.placeId;
+      if (!placeId) return;
+
+      if (isCandidate(placeId)) {
+        candidates = candidates.filter((c) => c.id !== placeId);
+        saveCandidates(candidates);
+      } else {
+        if (candidates.length >= MAX_CANDIDATES) {
+          setStatus('<p class="status-msg status-error dot">투표 후보는 최대 4개까지 선택할 수 있어요.</p>');
+          return;
+        }
+        candidates.push({
+          id: placeId,
+          name: cardEl.dataset.name || '',
+          category: cardEl.dataset.category || '',
+          address: cardEl.dataset.address || '',
+          url: cardEl.querySelector('.card-link') ? cardEl.querySelector('.card-link').getAttribute('href') : '',
+          lat: cardEl.dataset.lat || '',
+          lng: cardEl.dataset.lng || '',
+        });
+        saveCandidates(candidates);
+        setStatus('<p class="status-msg dot">투표 후보에 담았어요.</p>');
+      }
+
+      renderCandidateBar();
+      syncVoteButtons();
       return;
     }
+
     const cardEl = e.target.closest('.card');
     if (!cardEl) return;
     toggleReviewPanel(cardEl);
+  });
+
+  candidateResetBtn.addEventListener('click', () => {
+    candidates = [];
+    saveCandidates(candidates);
+    renderCandidateBar();
+    syncVoteButtons();
+    setStatus('<p class="status-msg dot">투표 후보를 모두 비웠어요.</p>');
+  });
+
+  candidateStartBtn.addEventListener('click', () => {
+    if (!candidates.length) return;
+    window.location.href = 'vote.html';
   });
 
   async function search(keyword, categoryGroupCode) {
@@ -492,5 +586,6 @@
     search(keyword, categorySelect.value);
   });
 
+  renderCandidateBar();
   checkServerHealth();
 })();

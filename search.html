@@ -58,6 +58,9 @@
 .btn:hover { filter: brightness(1.08); }
 .btn:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--green-dim); }
 .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn:disabled:hover { filter: none; }
+.btn:disabled:active { transform: none; box-shadow: 4px 4px 0 var(--green-dim); }
 
 .auth-widget { position: fixed; top: 16px; right: 16px; z-index: 60; display: flex; align-items: center; gap: 8px; }
 .auth-btn {
@@ -226,7 +229,40 @@ body {
   font-size: 13px;
   color: var(--ink);
   opacity: 0.7;
+  margin-bottom: 24px;
+}
+
+/* ---------- 투표 후보 바 ---------- */
+.candidate-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
   margin-bottom: 40px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--green-dim);
+}
+.candidate-counter {
+  font-size: 11px;
+  color: var(--green);
+}
+.candidate-reset {
+  font-family: 'Galmuri11', monospace;
+  -webkit-font-smoothing: none;
+  font-size: 11px;
+  background: none;
+  color: var(--ink);
+  border: 2px solid var(--green-dim);
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.candidate-reset:hover { border-color: var(--green); color: var(--green); }
+.candidate-reset:disabled { opacity: 0.5; cursor: default; }
+.candidate-reset:disabled:hover { border-color: var(--green-dim); color: var(--ink); }
+.btn.candidate-start {
+  margin-left: auto;
+  font-size: 11px;
+  padding: 8px 16px;
 }
 
 /* ---------- status ---------- */
@@ -338,6 +374,10 @@ body {
 }
 .vote-add-btn:hover { filter: brightness(1.1); }
 .vote-add-btn:active { box-shadow: 2px 2px 0 var(--green-dim); transform: translate(2px, 2px); }
+.vote-add-btn:disabled { opacity: 0.5; cursor: default; }
+.vote-add-btn:disabled:hover { filter: none; }
+.vote-add-btn.is-added { background: var(--bg); color: var(--green); }
+.vote-add-btn.is-added:hover { background: var(--green); color: var(--bg); }
 
 .review-toggle {
   align-self: flex-start;
@@ -533,6 +573,12 @@ body {
     <button type="submit" class="search-btn">검색</button>
   </form>
   <p class="search-hint">카카오 로컬 API 기반으로 가게명, 카테고리, 주소, 전화번호를 보여줍니다.</p>
+
+  <div class="candidate-bar">
+    <span id="candidate-counter" class="candidate-counter dot">투표 후보 0 / 4</span>
+    <button type="button" id="candidate-reset" class="candidate-reset dot" disabled>전체 초기화</button>
+    <button type="button" id="candidate-start" class="btn candidate-start" disabled>투표 시작 →</button>
+  </div>
 
   <div id="status" class="status-box" hidden></div>
 

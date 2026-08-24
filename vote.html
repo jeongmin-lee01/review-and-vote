@@ -1,9 +1,18 @@
 <!DOCTYPE html>
+<!--
+  vote.html — 점메투 투표 페이지
+
+  search.html에서 "+ 투표 후보에 담기"로 담은 후보(localStorage 키 jeommetu:vote-candidates)를
+  읽어와 하나를 골라 확정하는 화면이다. 실시간 다자간 투표는 아직 없고(로드맵 참고),
+  이번 버전은 한 사람이 후보 중 하나를 선택해 결과를 확인하는 방식이다.
+
+  실행법: node server.js 로 서버를 띄운 뒤 http://localhost:8811/vote.html 접속.
+-->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>점메투 — 투표 데모</title>
+<title>점메투 — 투표하기</title>
 <style>
 @import url('https://cdn.jsdelivr.net/npm/galmuri/dist/galmuri.css');
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
@@ -21,20 +30,43 @@
 * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
 
 /* ---------- 로그인 위젯/모달 (전 페이지 공용, js/auth.js가 주입) ---------- */
-.auth-widget { position: fixed; top: 16px; right: 16px; z-index: 60; }
+.auth-widget { position: fixed; top: 16px; right: 16px; z-index: 60; display: flex; align-items: center; gap: 8px; }
 .auth-btn {
   font-family: 'Galmuri11', monospace;
   -webkit-font-smoothing: none;
   font-size: 11px;
+  line-height: normal;
   color: var(--ink);
   background: var(--panel);
   border: 2px solid var(--green);
   padding: 8px 14px;
+  width: 90px;
+  text-align: center;
   cursor: pointer;
   box-shadow: 4px 4px 0 var(--green-dim);
 }
 .auth-btn:hover { color: var(--green); }
 .auth-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--green-dim); }
+
+.mypage-btn {
+  display: inline-block;
+  font-family: 'Galmuri11', monospace;
+  -webkit-font-smoothing: none;
+  font-size: 11px;
+  line-height: normal;
+  color: var(--ink);
+  background: var(--panel);
+  border: 2px solid var(--green);
+  padding: 8px 14px;
+  width: 90px;
+  text-align: center;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 4px 4px 0 var(--green-dim);
+}
+.mypage-btn:hover { color: var(--green); }
+.mypage-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--green-dim); }
+.mypage-btn[hidden] { display: none; }
 
 .auth-modal-overlay {
   position: fixed; inset: 0; z-index: 100;
@@ -128,20 +160,6 @@ body {
   text-decoration: none;
   letter-spacing: 0.05em;
 }
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  font-size: 11px;
-}
-.topbar-player { color: var(--ink); }
-.badge-sample {
-  border: 2px solid var(--green);
-  color: var(--ink);
-  background: transparent;
-  padding: 4px 8px;
-  letter-spacing: 0.05em;
-}
 
 /* ---------- main ---------- */
 .vote-main {
@@ -160,9 +178,29 @@ body {
 .select-title {
   font-size: 33px;
   color: var(--green);
-  margin-bottom: 48px;
+  margin-bottom: 12px;
 }
 @media (max-width: 600px) { .select-title { font-size: 22px; } }
+
+.select-sub {
+  font-size: 15px;
+  color: var(--ink);
+  opacity: 0.8;
+  margin-bottom: 40px;
+}
+
+/* ---------- status (후보 없음 안내) ---------- */
+.status-box {
+  background: var(--panel);
+  border: 2px solid var(--green-dim);
+  box-shadow: 4px 4px 0 var(--green-dim);
+  padding: 32px 24px;
+  text-align: center;
+  margin-bottom: 32px;
+}
+.status-box[hidden] { display: none; }
+.status-msg { font-size: 14px; color: var(--green); margin-bottom: 16px; }
+.status-sub { font-size: 14px; color: var(--ink); opacity: 0.8; }
 
 /* ---------- vote grid (캐릭터 셀렉트) ---------- */
 .vote-grid {
@@ -171,6 +209,7 @@ body {
   gap: 24px;
   margin-bottom: 48px;
 }
+.vote-grid[hidden] { display: none; }
 @media (max-width: 768px) {
   .vote-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
 }
@@ -187,7 +226,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   width: 100%;
   background: var(--panel);
   border: 2px solid var(--green);
@@ -198,7 +237,7 @@ body {
   color: inherit;
   transition: transform 0.05s;
 }
-.vote-slot:disabled { cursor: default; }
+.vote-slot:disabled { cursor: default; opacity: 0.7; }
 
 .vote-link {
   display: block;
@@ -240,40 +279,21 @@ body {
   font-size: 11px;
   color: var(--ink);
 }
-.slot-count {
-  font-size: 33px;
-  color: var(--amber);
+.slot-category {
+  font-size: 11px;
+  color: var(--ink);
+  opacity: 0.6;
 }
 
 .vote-slot.flash {
   border-color: var(--amber);
   box-shadow: 4px 4px 0 var(--amber);
 }
-.vote-slot.winner {
+.vote-slot.selected {
   border-color: var(--amber);
   box-shadow: 4px 4px 0 var(--amber);
 }
-.vote-slot.winner .slot-icon { color: var(--amber); }
-
-/* ---------- arrival indicators ---------- */
-.arrival-row {
-  display: flex;
-  justify-content: center;
-  gap: 24px;
-  margin-bottom: 40px;
-  font-size: 11px;
-  color: var(--ink);
-}
-.arrival-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.arrival-dot {
-  font-size: 22px;
-  color: var(--green-dim);
-}
-.arrival-dot.arrived { color: var(--green); }
+.vote-slot.selected .slot-icon { color: var(--amber); }
 
 /* ---------- CTA ---------- */
 .btn {
@@ -296,7 +316,10 @@ body {
   box-shadow: 0 0 0 var(--green-dim);
 }
 .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-@media (max-width: 600px) { .btn { font-size: 11px; padding: 12px 20px; } }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn:disabled:active { transform: none; box-shadow: 4px 4px 0 var(--green-dim); }
+.btn[hidden] { display: none; }
+@media (max-width: 600px) { .btn { font-size: 22px; padding: 14px 20px; } }
 
 .result-line {
   margin-top: 24px;
@@ -306,15 +329,22 @@ body {
 }
 .result-line strong { color: var(--amber); }
 
-.back-link {
-  display: inline-block;
+.back-links {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-top: 48px;
-  font-size: 11px;
-  color: var(--green-dim);
-  text-decoration: none;
-  border-bottom: 2px solid var(--green-dim);
 }
-.back-link:hover { color: var(--ink); border-color: var(--ink); }
+.back-link {
+  font-size: 11px;
+  color: var(--ink);
+  text-decoration: none;
+  border: 2px solid var(--green-dim);
+  padding: 8px 12px;
+  display: inline-block;
+}
+.back-link:hover { border-color: var(--green); color: var(--green); }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
@@ -329,88 +359,98 @@ body {
 <header class="topbar">
   <div class="container topbar-inner">
     <a href="index.html" class="topbar-logo dot-lg">점메투</a>
-    <div class="topbar-right dot">
-      <span class="topbar-player">1P: MIN</span>
-      <span class="badge-sample">SAMPLE DATA</span>
-    </div>
   </div>
 </header>
 
 <main class="container vote-main">
   <span class="select-label dot">GAME START</span>
-  <h1 class="select-title dot">SELECT YOUR DINNER</h1>
+  <h1 class="select-title dot">SELECT YOUR CHOICE</h1>
+  <p class="select-sub">오늘 먹을 곳을 하나 골라주세요.</p>
 
-  <div class="vote-grid" id="voteGrid">
-    <div class="vote-item">
-      <button type="button" class="vote-slot" data-name="국밥">
-        <span class="slot-icon dot-lg">▣</span>
-        <span class="slot-name dot">국밥</span>
-        <span class="slot-count dot" aria-live="polite">0</span>
-      </button>
-      <a href="https://map.kakao.com/?q=국밥" target="_blank" rel="noopener noreferrer" class="vote-link dot">가게 보기 →</a>
-    </div>
-    <div class="vote-item">
-      <button type="button" class="vote-slot" data-name="마라탕">
-        <span class="slot-icon dot-lg">◆</span>
-        <span class="slot-name dot">마라탕</span>
-        <span class="slot-count dot" aria-live="polite">0</span>
-      </button>
-      <a href="https://map.kakao.com/?q=마라탕" target="_blank" rel="noopener noreferrer" class="vote-link dot">가게 보기 →</a>
-    </div>
-    <div class="vote-item">
-      <button type="button" class="vote-slot" data-name="파스타">
-        <span class="slot-icon dot-lg">▤</span>
-        <span class="slot-name dot">파스타</span>
-        <span class="slot-count dot" aria-live="polite">0</span>
-      </button>
-      <a href="https://map.kakao.com/?q=파스타" target="_blank" rel="noopener noreferrer" class="vote-link dot">가게 보기 →</a>
-    </div>
-    <div class="vote-item">
-      <button type="button" class="vote-slot" data-name="초밥">
-        <span class="slot-icon dot-lg">◐</span>
-        <span class="slot-name dot">초밥</span>
-        <span class="slot-count dot" aria-live="polite">0</span>
-      </button>
-      <a href="https://map.kakao.com/?q=초밥" target="_blank" rel="noopener noreferrer" class="vote-link dot">가게 보기 →</a>
-    </div>
-  </div>
+  <div id="status" class="status-box" hidden></div>
 
-  <div class="arrival-row dot" id="arrivalRow">
-    <span class="arrival-item"><span>1P</span><span class="arrival-dot">○</span></span>
-    <span class="arrival-item"><span>2P</span><span class="arrival-dot">○</span></span>
-    <span class="arrival-item"><span>3P</span><span class="arrival-dot">○</span></span>
-    <span class="arrival-item"><span>4P</span><span class="arrival-dot">○</span></span>
-  </div>
+  <div class="vote-grid" id="voteGrid"></div>
 
-  <button type="button" class="btn" id="cta">▸ 오늘 여기서 먹자</button>
+  <button type="button" class="btn" id="cta" disabled>▸ 오늘 여기서 먹자</button>
   <p class="result-line dot" id="resultLine" aria-live="polite"></p>
 
-  <a href="index.html" class="back-link dot">◂ 랜딩페이지로 돌아가기</a>
+  <div class="back-links">
+    <a href="search.html" class="back-link dot">← 후보 다시 고르기</a>
+    <a href="index.html" class="back-link dot">← 홈으로</a>
+  </div>
 </main>
 
+<script>window.JEOMMETU_MYPAGE_URL = 'mypage.html';</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="js/auth.js"></script>
 <script>
 (function () {
   'use strict';
 
-  var slots = Array.prototype.slice.call(document.querySelectorAll('.vote-slot'));
-  var arrivalDots = Array.prototype.slice.call(document.querySelectorAll('.arrival-dot'));
+  var CANDIDATES_KEY = 'jeommetu:vote-candidates';
+  var ICONS = ['▣', '◆', '▤', '◐'];
+
+  var voteGrid = document.getElementById('voteGrid');
+  var statusEl = document.getElementById('status');
   var cta = document.getElementById('cta');
   var resultLine = document.getElementById('resultLine');
 
-  var votes = [0, 0, 0, 0];
-  var votedCount = 0;
-  var votingInProgress = false;
+  var candidates = [];
+  var selectedId = null;
+  var confirmed = false;
+
+  function loadCandidates() {
+    try {
+      var raw = localStorage.getItem(CANDIDATES_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (err) {
+      return [];
+    }
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
 
   function reduceMotion() {
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
 
-  function markArrival(playerIndex) {
-    var d = arrivalDots[playerIndex];
-    d.textContent = '●';
-    d.classList.add('arrived');
+  function setStatus(html) {
+    statusEl.innerHTML = html;
+    statusEl.hidden = false;
+  }
+
+  function renderEmpty() {
+    voteGrid.hidden = true;
+    cta.hidden = true;
+    setStatus(
+      '<p class="status-msg dot">아직 담은 투표 후보가 없어요.</p>' +
+      '<a class="btn" href="search.html">맛집 검색하러 가기</a>'
+    );
+  }
+
+  function renderSlot(candidate, index) {
+    var icon = ICONS[index % ICONS.length];
+    var category = candidate.category
+      ? '<span class="slot-category">' + escapeHtml(candidate.category) + '</span>'
+      : '';
+    return (
+      '<div class="vote-item">' +
+        '<button type="button" class="vote-slot" data-id="' + escapeHtml(candidate.id) + '" title="' + escapeHtml(candidate.address || '') + '">' +
+          '<span class="slot-icon dot-lg">' + icon + '</span>' +
+          '<span class="slot-name dot">' + escapeHtml(candidate.name) + '</span>' +
+          category +
+        '</button>' +
+        '<a href="' + escapeHtml(candidate.url || '#') + '" target="_blank" rel="noopener noreferrer" class="vote-link dot">가게 보기 →</a>' +
+      '</div>'
+    );
+  }
+
+  function renderGrid() {
+    voteGrid.innerHTML = candidates.map(renderSlot).join('');
   }
 
   function flashSlot(slot) {
@@ -419,71 +459,55 @@ body {
     window.setTimeout(function () { slot.classList.remove('flash'); }, hold);
   }
 
-  function castVote(slotIndex, playerIndex) {
-    votes[slotIndex]++;
-    slots[slotIndex].querySelector('.slot-count').textContent = String(votes[slotIndex]);
-    markArrival(playerIndex);
-    flashSlot(slots[slotIndex]);
-    votedCount++;
-
-    if (votedCount === 4) finishVoting();
+  function updateSelectionUI() {
+    var slots = voteGrid.querySelectorAll('.vote-slot');
+    slots.forEach(function (slot) {
+      slot.classList.toggle('selected', slot.dataset.id === selectedId);
+    });
+    cta.disabled = !selectedId || confirmed;
   }
 
-  function finishVoting() {
-    var max = Math.max.apply(null, votes);
-    var winners = [];
-    slots.forEach(function (s, i) {
-      s.disabled = true;
-      if (votes[i] === max) {
-        s.classList.add('winner');
-        winners.push(s.dataset.name);
-      }
-    });
-    cta.textContent = '▸ 다시 투표하기';
-    resultLine.innerHTML = winners.length > 1
-      ? '동점! <strong>' + winners.join(', ') + '</strong> 중에서 한 번 더 골라야 해요.'
-      : '오늘은 <strong>' + winners[0] + '</strong>(으)로 확정!';
-    votingInProgress = false;
-  }
-
-  function resetDemo() {
-    votes = [0, 0, 0, 0];
-    votedCount = 0;
-    votingInProgress = false;
-    slots.forEach(function (s) {
-      s.disabled = false;
-      s.classList.remove('flash', 'winner');
-      s.querySelector('.slot-count').textContent = '0';
-    });
-    arrivalDots.forEach(function (d) {
-      d.textContent = '○';
-      d.classList.remove('arrived');
-    });
-    cta.textContent = '▸ 오늘 여기서 먹자';
+  voteGrid.addEventListener('click', function (e) {
+    if (confirmed) return;
+    var slot = e.target.closest('.vote-slot');
+    if (!slot) return;
+    selectedId = slot.dataset.id;
+    flashSlot(slot);
+    updateSelectionUI();
     resultLine.textContent = '';
-  }
-
-  slots.forEach(function (slot, i) {
-    slot.addEventListener('click', function () {
-      if (votingInProgress || slot.disabled) return;
-      votingInProgress = true;
-      resultLine.textContent = '';
-
-      castVote(i, 0); // 1P = 내 표, 즉시 반영
-
-      [1, 2, 3].forEach(function (playerIndex, idx) {
-        var delay = reduceMotion() ? 0 : (idx + 1) * 800;
-        window.setTimeout(function () {
-          var randomSlot = Math.floor(Math.random() * slots.length);
-          castVote(randomSlot, playerIndex);
-        }, delay);
-      });
-    });
   });
 
   cta.addEventListener('click', function () {
-    if (votedCount === 4) resetDemo();
+    var slots = voteGrid.querySelectorAll('.vote-slot');
+
+    if (confirmed) {
+      // 다시 고르기: 확정을 풀고 후보를 다시 선택할 수 있게 한다.
+      confirmed = false;
+      slots.forEach(function (slot) { slot.disabled = false; });
+      cta.textContent = '▸ 오늘 여기서 먹자';
+      resultLine.textContent = '';
+      updateSelectionUI();
+      return;
+    }
+
+    if (!selectedId) return;
+    var picked = candidates.filter(function (c) { return c.id === selectedId; })[0];
+    if (!picked) return;
+
+    confirmed = true;
+    slots.forEach(function (slot) { slot.disabled = true; });
+    cta.disabled = false;
+    cta.textContent = '다시 고르기';
+    resultLine.innerHTML = '오늘의 선택은 <strong>' + escapeHtml(picked.name) + '</strong>입니다!';
   });
+
+  candidates = loadCandidates();
+  if (!candidates.length) {
+    renderEmpty();
+  } else {
+    renderGrid();
+    updateSelectionUI();
+  }
 })();
 </script>
 </body>

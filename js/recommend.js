@@ -63,6 +63,15 @@
     listEl.innerHTML = '';
   }
 
+  // 라벨을 "나를 위한 추천" 대신 이메일 앞 3글자로 개인화한다 (예: ppa 님을 위한 추천).
+  function updateLabel(user) {
+    const labelEl = panelEl.querySelector('.hero-recommend-label');
+    if (!labelEl) return;
+    const email = (user && user.email) || '';
+    const prefix = email.slice(0, 3);
+    labelEl.textContent = prefix ? `${prefix}님을 위한 추천` : '나를 위한 추천';
+  }
+
   async function buildRecommendations() {
     const { data: picks, error } = await client.from('saved_places').select('category, place_id');
     if (error) {
@@ -126,6 +135,7 @@
     lastUserId = uid;
 
     if (user) {
+      updateLabel(user);
       buildRecommendations();
     } else {
       hide();
