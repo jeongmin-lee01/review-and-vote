@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<!--
+  mypage.html — 점메투 마이페이지 (내가 담은 맛집 목록)
+
+  실행법: node server.js 로 서버를 띄운 뒤 http://localhost:8811/mypage.html 접속.
+  로그인이 필요하며, js/mypage.js가 Supabase의 saved_places 테이블에서
+  RLS로 걸러진 "내 것"만 가져와 카드로 보여준다.
+-->
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>점메투 — 마이페이지</title>
+<style>
+@import url('https://cdn.jsdelivr.net/npm/galmuri/dist/galmuri.css');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+:root {
+  --bg: #0A0E0A;
+  --panel: #111A12;
+  --green: #3DFF6E;
+  --green-dim: #1F7A3A;
+  --amber: #FFB000;
+  --ink: #DFFFE4;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
+
+/* ---------- 로그인 위젯/모달 (전 페이지 공용, js/auth.js가 주입) ---------- */
+.btn {
+  display: inline-block;
+  font-family: 'Galmuri11', monospace;
+  -webkit-font-smoothing: none;
+  font-size: 15px;
+  color: var(--bg);
+  background: var(--amber);
+  border: 2px solid var(--amber);
+  box-shadow: 4px 4px 0 var(--green-dim);
+  padding: 12px 24px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.05s;
+}
+.btn:hover { filter: brightness(1.08); }
+.btn:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--green-dim); }
+.btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.auth-widget { position: fixed; top: 16px; right: 16px; z-index: 60; }
+.auth-btn {
+  font-family: 'Galmuri11', monospace;
+  -webkit-font-smoothing: none;
+  font-size: 11px;
+  color: var(--ink);
+  background: var(--panel);
+  border: 2px solid var(--green);
+  padding: 8px 14px;
+  cursor: pointer;
+  box-shadow: 4px 4px 0 var(--green-dim);
+}
+.auth-btn:hover { color: var(--green); }
+.auth-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--green-dim); }
+
+.auth-modal-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(10, 14, 10, 0.85);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.auth-modal-overlay[hidden] { display: none; }
+.auth-modal {
+  width: 100%; max-width: 360px;
+  background: var(--panel);
+  border: 2px solid var(--green);
+  box-shadow: 4px 4px 0 var(--green-dim);
+  padding: 32px 24px;
+  position: relative;
+  text-align: left;
+}
+.auth-modal-close {
+  position: absolute; top: 12px; right: 12px;
+  background: none; border: none; color: var(--ink);
+  font-size: 18px; cursor: pointer; font-family: 'Galmuri11', monospace;
+}
+.auth-modal h2 { font-family: 'Galmuri11', monospace; -webkit-font-smoothing: none; font-size: 22px; color: var(--green); margin-bottom: 24px; }
+.auth-context { font-size: 13px; color: var(--green); margin-bottom: 20px; }
+.auth-field { margin-bottom: 16px; }
+.auth-field label { display: block; font-size: 13px; color: var(--ink); margin-bottom: 6px; }
+.auth-field input {
+  width: 100%; background: var(--bg); border: 2px solid var(--green-dim); color: var(--ink);
+  font-family: 'Pretendard', sans-serif; font-size: 15px; padding: 10px 12px;
+}
+.auth-field input:focus { outline: none; border-color: var(--green); }
+.auth-actions { display: flex; gap: 12px; margin-top: 24px; }
+.auth-actions .btn { flex: 1; font-size: 15px; padding: 12px; text-align: center; }
+.auth-msg { font-size: 13px; margin-top: 12px; min-height: 1.4em; }
+.auth-msg.is-error { color: var(--amber); }
+.auth-msg.is-info { color: var(--ink); opacity: 0.8; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+  min-height: 100vh;
+}
+
+.dot { font-family: 'Galmuri11', monospace; -webkit-font-smoothing: none; }
+.dot-lg { font-family: 'Galmuri14', monospace; -webkit-font-smoothing: none; }
+
+.container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 48px 24px 96px;
+}
+
+/* ---------- header ---------- */
+.page-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  border-bottom: 2px solid var(--green-dim);
+  padding-bottom: 24px;
+  margin-bottom: 32px;
+}
+
+.page-title {
+  font-size: 28px;
+  color: var(--green);
+}
+@media (max-width: 600px) { .page-title { font-size: 14px; } }
+
+.back-link {
+  font-size: 11px;
+  color: var(--ink);
+  text-decoration: none;
+  border: 2px solid var(--green-dim);
+  padding: 8px 12px;
+  display: inline-block;
+}
+.back-link:hover { border-color: var(--green); color: var(--green); }
+
+/* ---------- status ---------- */
+.status-box {
+  background: var(--panel);
+  border: 2px solid var(--green-dim);
+  box-shadow: 4px 4px 0 var(--green-dim);
+  padding: 32px 24px;
+  text-align: center;
+  margin-bottom: 32px;
+}
+.status-box[hidden] { display: none; }
+.status-msg { font-size: 14px; color: var(--green); margin-bottom: 16px; }
+.status-msg.status-error { color: var(--amber); }
+.status-sub { font-size: 14px; color: var(--ink); opacity: 0.8; }
+
+/* ---------- picks ---------- */
+.results {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+@media (max-width: 700px) { .results { grid-template-columns: 1fr; } }
+
+.card {
+  position: relative;
+  background: var(--panel);
+  border: 2px solid var(--green-dim);
+  box-shadow: 4px 4px 0 var(--green-dim);
+  padding: 24px 48px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card-name {
+  font-size: 16px;
+  color: var(--green);
+  line-height: 1.5;
+}
+
+.card-category {
+  font-size: 13px;
+  color: var(--ink);
+  opacity: 0.75;
+}
+
+.card-meta { display: flex; flex-direction: column; gap: 6px; }
+.card-meta-row { display: flex; gap: 8px; font-size: 14px; color: var(--ink); }
+.card-meta-row dt { flex: 0 0 56px; opacity: 0.6; }
+.card-meta-row dd { flex: 1; word-break: break-all; }
+
+.card-link {
+  margin-top: auto;
+  align-self: flex-start;
+  font-size: 13px;
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 2px solid var(--green-dim);
+  padding-bottom: 2px;
+}
+.card-link:hover { color: var(--green); border-color: var(--green); }
+
+.card-delete-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border: 2px solid var(--green-dim);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+.card-delete-btn:hover { border-color: var(--amber); color: var(--amber); }
+.card-delete-btn:active { transform: translate(1px, 1px); }
+.card-delete-btn:disabled { opacity: 0.5; cursor: default; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header class="page-header">
+    <h1 class="page-title dot-lg">마이페이지</h1>
+    <a class="back-link dot" href="index.html">← 홈으로</a>
+  </header>
+
+  <div id="status" class="status-box" hidden></div>
+
+  <ul id="picks" class="results"></ul>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/mypage.js"></script>
+</body>
+</html>

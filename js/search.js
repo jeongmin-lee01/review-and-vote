@@ -71,7 +71,7 @@
     const lng = place.x || '';
 
     return `
-      <li class="card" data-place-id="${placeId}" data-name="${name}" data-lat="${lat}" data-lng="${lng}" aria-expanded="false">
+      <li class="card" data-place-id="${placeId}" data-name="${name}" data-category="${category}" data-address="${address}" data-lat="${lat}" data-lng="${lng}" aria-expanded="false">
         <h3 class="card-name dot">${name}</h3>
         <p class="card-category">${category}</p>
         <dl class="card-meta">
@@ -87,7 +87,10 @@
         </dl>
         <div class="card-actions">
           <a class="card-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">카카오맵에서 보기 →</a>
-          <button type="button" class="vote-add-btn dot">투표에 넣기</button>
+          <div class="card-btn-group">
+            <button type="button" class="pick-add-btn dot">맛집 담기</button>
+            <button type="button" class="vote-add-btn dot">투표에 넣기</button>
+          </div>
         </div>
         <button type="button" class="review-toggle dot">▸ 구글 리뷰 보기</button>
       </li>
@@ -411,6 +414,7 @@
 
   resultsEl.addEventListener('click', (e) => {
     if (e.target.closest('.card-link')) return;
+    if (e.target.closest('.pick-add-btn')) return;
     if (e.target.closest('.vote-add-btn')) {
       if (window.JeommetuAuth) window.JeommetuAuth.requireLogin();
       return;

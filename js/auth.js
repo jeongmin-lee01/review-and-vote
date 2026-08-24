@@ -8,6 +8,7 @@
 
   var SUPABASE_URL = 'https://gppnctirycvkewokjumi.supabase.co';
   var SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_oJFvstKca7MGPDp6pghCDQ_o8-ffwld';
+  var MYPAGE_URL = window.JEOMMETU_MYPAGE_URL || '';
 
   if (!window.supabase || typeof window.supabase.createClient !== 'function') {
     console.error('[auth] supabase-js가 로드되지 않았습니다.');
@@ -45,7 +46,9 @@
   function injectMarkup() {
     var widget = document.createElement('div');
     widget.className = 'auth-widget';
-    widget.innerHTML = '<button type="button" class="auth-btn dot" id="authTriggerBtn">로그인</button>';
+    widget.innerHTML =
+      (MYPAGE_URL ? '<a href="' + MYPAGE_URL + '" class="mypage-btn dot" id="mypageLink" hidden>마이페이지</a>' : '') +
+      '<button type="button" class="auth-btn dot" id="authTriggerBtn">로그인</button>';
     document.body.appendChild(widget);
 
     var overlay = document.createElement('div');
@@ -56,6 +59,7 @@
       '<div class="auth-modal">' +
         '<button type="button" class="auth-modal-close" id="authModalClose" aria-label="닫기">×</button>' +
         '<h2 class="dot">로그인 / 회원가입</h2>' +
+        '<p class="auth-context dot" id="authContext" hidden></p>' +
         '<form id="authForm">' +
           '<div class="auth-field">' +
             '<label for="authEmail">이메일</label>' +
@@ -83,6 +87,8 @@
     els.signInBtn = document.getElementById('authSignInBtn');
     els.signUpBtn = document.getElementById('authSignUpBtn');
     els.msg = document.getElementById('authMsg');
+    els.context = document.getElementById('authContext');
+    els.mypageLink = document.getElementById('mypageLink');
 
     els.triggerBtn.addEventListener('click', function () {
       if (currentUser) {
@@ -110,6 +116,7 @@
   function renderWidget() {
     if (!els.triggerBtn) return;
     els.triggerBtn.textContent = currentUser ? '로그아웃' : '로그인';
+    if (els.mypageLink) els.mypageLink.hidden = !currentUser;
   }
 
   function setMsg(text, kind) {
@@ -122,10 +129,12 @@
     els.signUpBtn.disabled = busy;
   }
 
-  function openModal() {
+  function openModal(contextText) {
     els.email.value = '';
     els.password.value = '';
     setMsg('');
+    els.context.textContent = contextText || '';
+    els.context.hidden = !contextText;
     els.overlay.hidden = false;
     els.email.focus();
   }
@@ -194,11 +203,14 @@
     onChange: function (cb) {
       listeners.push(cb);
     },
-    requireLogin: function () {
+    requireLogin: function (contextText) {
       if (currentUser) return true;
-      openModal();
+      openModal(contextText);
       return false;
     },
-    openModal: openModal
+    openModal: openModal,
+    getClient: function () {
+      return client;
+    }
   };
 })();
