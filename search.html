@@ -100,6 +100,26 @@
 .mypage-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--green-dim); }
 .mypage-btn[hidden] { display: none; }
 
+.a11y-toggle-btn {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 60;
+  font-family: 'Galmuri11', monospace;
+  -webkit-font-smoothing: none;
+  font-size: 11px;
+  line-height: normal;
+  color: var(--ink);
+  background: var(--panel);
+  border: 2px solid var(--green);
+  padding: 8px 14px;
+  cursor: pointer;
+  box-shadow: 4px 4px 0 var(--green-dim);
+}
+.a11y-toggle-btn:hover { color: var(--green); }
+.a11y-toggle-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--green-dim); }
+.a11y-toggle-btn[aria-pressed="true"] { color: var(--amber); border-color: var(--amber); }
+
 .auth-modal-overlay {
   position: fixed; inset: 0; z-index: 100;
   background: rgba(10, 14, 10, 0.85);
@@ -548,6 +568,25 @@ body {
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+/* ---------- 접근성 모드 (토글) ---------- */
+.a11y-mode .btn:focus-visible,
+.a11y-mode .auth-btn:focus-visible,
+.a11y-mode .mypage-btn:focus-visible,
+.a11y-mode .a11y-toggle-btn:focus-visible,
+.a11y-mode .search-btn:focus-visible,
+.a11y-mode .category-select:focus-visible,
+.a11y-mode .search-input:focus-visible,
+.a11y-mode .candidate-reset:focus-visible,
+.a11y-mode .pick-add-btn:focus-visible,
+.a11y-mode .vote-add-btn:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+.a11y-mode .auth-field input:focus {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
 </style>
 </head>
 <body>
@@ -588,6 +627,7 @@ body {
 <script>window.JEOMMETU_MYPAGE_URL = 'mypage.html';</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="js/auth.js"></script>
+<script src="js/a11y.js"></script>
 <script src="js/search.js"></script>
 <script src="js/picks.js"></script>
 </body>
