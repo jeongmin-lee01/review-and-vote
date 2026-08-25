@@ -339,7 +339,8 @@ body {
    레트로 각진 UI와 달리 실제 사진 콘텐츠 영역이라 둥근 모서리를 예외로 허용한다. */
 .card-photo {
   width: 100%;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 16 / 9;
+  max-height: 180px;
   background: #2A2E2A;
   border-radius: 12px !important;
   display: flex;
@@ -354,7 +355,7 @@ body {
   display: block;
   border-radius: 12px !important;
 }
-.card-photo-emoji { font-size: 56px; line-height: 1; }
+.card-photo-emoji { font-size: 40px; line-height: 1; }
 .card-photo-credit {
   font-size: 11px;
   color: var(--ink);
@@ -362,7 +363,8 @@ body {
   margin-top: -6px;
 }
 @media (max-width: 600px) {
-  .card-photo-emoji { font-size: 44px; }
+  .card-photo { max-height: 140px; }
+  .card-photo-emoji { font-size: 32px; }
 }
 
 .card-link {

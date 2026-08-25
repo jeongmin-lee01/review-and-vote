@@ -75,6 +75,20 @@ function serveStatic(req, res, pathname) {
 
   fs.readFile(filePath, (err, data) => {
     if (err) {
+      // 확장자가 없는 경로(예: 일부 브라우저 확장이 주소창에서 .html을 지우는 경우의 /search)는
+      // 같은 이름의 .html 파일로 한 번 더 시도해본다.
+      if (path.extname(filePath) === '') {
+        fs.readFile(`${filePath}.html`, (htmlErr, htmlData) => {
+          if (htmlErr) {
+            res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+            res.end('Not Found');
+            return;
+          }
+          res.writeHead(200, { 'Content-Type': MIME_TYPES['.html'] });
+          res.end(htmlData);
+        });
+        return;
+      }
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end('Not Found');
       return;

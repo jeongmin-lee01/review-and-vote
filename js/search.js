@@ -264,23 +264,41 @@
     photoBox.insertAdjacentElement('afterend', credit);
   }
 
+  // 구글 Places 사진 CDN이 첫 요청에서 가끔 일시적으로 실패하는 경우가 있어
+  // 바로 이모지로 포기하지 않고 한 번 더 재시도한다.
+  function loadImageWithRetry(url, onLoad, onFail, attempt) {
+    const img = new Image();
+    img.onload = () => onLoad(img);
+    img.onerror = () => {
+      if (attempt < 1) {
+        setTimeout(() => loadImageWithRetry(url, onLoad, onFail, attempt + 1), 500);
+      } else {
+        onFail();
+      }
+    };
+    img.src = url;
+  }
+
   function updateCardPhoto(cardEl, data) {
     const photoBox = cardEl.querySelector('.card-photo');
     if (!photoBox || !data || !data.photoName) return; // 사진 없음 → fallback 유지
 
     if (photoBox.dataset.photoName === data.photoName) return; // 이미 이 사진으로 반영됨
 
-    const img = new Image();
-    img.alt = `${data.name || ''} 사진`;
-    img.loading = 'lazy';
-    img.onload = () => {
-      photoBox.innerHTML = '';
-      photoBox.appendChild(img);
-      photoBox.dataset.photoName = data.photoName;
-      renderPhotoCredit(photoBox, data.photoAttributions);
-    };
-    img.onerror = () => renderPhotoFallback(photoBox);
-    img.src = `/api/place-photo?name=${encodeURIComponent(data.photoName)}`;
+    const url = `/api/place-photo?name=${encodeURIComponent(data.photoName)}`;
+    loadImageWithRetry(
+      url,
+      (img) => {
+        img.alt = `${data.name || ''} 사진`;
+        img.loading = 'lazy';
+        photoBox.innerHTML = '';
+        photoBox.appendChild(img);
+        photoBox.dataset.photoName = data.photoName;
+        renderPhotoCredit(photoBox, data.photoAttributions);
+      },
+      () => renderPhotoFallback(photoBox),
+      0
+    );
   }
 
   function setReviewToggleLabel(cardEl, isOpen) {
