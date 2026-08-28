@@ -1,0 +1,33 @@
+name: Supabase Keep Alive
+
+# Supabase 무료 플랜은 일정 기간 API 요청이 없으면 프로젝트가 일시정지된다.
+# 3일마다 saved_places 테이블에서 1행만 조회해 활동 신호를 보낸다.
+on:
+  schedule:
+    - cron: '0 0 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query 1 row from Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_PUBLISHABLE_KEY" ]; then
+            echo "SUPABASE_URL / SUPABASE_PUBLISHABLE_KEY secret이 설정되어 있지 않습니다." >&2
+            exit 1
+          fi
+
+          http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_PUBLISHABLE_KEY" \
+            "$SUPABASE_URL/rest/v1/saved_places?select=id&limit=1")
+
+          echo "Supabase response: HTTP $http_code"
+
+          if [ "$http_code" -ge 400 ]; then
+            exit 1
+          fi
